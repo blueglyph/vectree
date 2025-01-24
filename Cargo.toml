@@ -1,0 +1,17 @@
+[package]
+name = "vectree"
+description = "Vector-buffered tree collection with post-order, depth-first, mutable/immutable iterator"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.58.0"
+authors = ["Redglyph"]
+
+categories = ["data-structures", "rust-patterns"]
+keywords = ["tree", "collection", "depth-first"]
+#documentation = "https://docs.rs/vectree"
+homepage = "https://github.com/blueglyph/vectree"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/blueglyph/vectree"
+readme = "README.md"
+
+[dependencies]
