@@ -515,8 +515,9 @@ impl<'a, T> VecTree<T> {
 
     /// Clears the tree content.
     pub fn clear(&mut self) {
+        assert_eq!(self.borrows.get(), 0, "must drop all iterator's node references before clearing a VecTree");
         self.nodes.clear();
-        *self.borrows.get_mut() = 0;
+        // *self.borrows.get_mut() = 0;
         self.root = None;
     }
 }

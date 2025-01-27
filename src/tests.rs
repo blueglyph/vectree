@@ -307,6 +307,7 @@ mod general {
 }
 
 mod borrow {
+    use std::ops::Deref;
     use super::*;
 
     #[test]
@@ -359,6 +360,20 @@ mod borrow {
         }
         let result = tree_to_string(&tree);
         assert_eq!(result, "root(a(A1,a2),b,c(c1,c2))");
+    }
+
+    #[test]
+    #[should_panic(expected="must drop all iterator's node references before clearing a VecTree")]
+    fn clear_while_node_is_borrowed() {
+        let mut tree = build_tree();
+        let mut iter = tree.iter_depth();
+        let _a1 = iter.next();
+        let _a2 = iter.next();
+        let a = iter.next().unwrap();
+        let a1_borrowed = a.iter_children().next().unwrap();
+        tree.clear();
+        let value = a1_borrowed.deref();
+        println!("value: {value}");
     }
 }
 
