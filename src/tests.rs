@@ -53,7 +53,7 @@ mod general {
         let mut tree = build_tree();
         tree.clear();
         assert_eq!(tree.nodes.len(), 0);
-        assert_eq!(tree.borrows.get(), 0);
+        assert_eq!(tree.borrows_mut.get(), 0);
     }
 
     // cargo +nightly miri test --lib vectree::tests::general::clone -- --exact
@@ -364,11 +364,22 @@ mod borrow {
 
     #[test]
     #[should_panic(expected="must drop all iterator's node references before clearing a VecTree")]
+    fn clear_while_node_is_borrowed_simple() {
+        let mut tree = build_tree();
+        let mut iter = tree.iter_depth_simple();
+        let a1_borrowed = iter.next().unwrap();
+        tree.clear();                // OK: doesn't compile
+        let value = a1_borrowed.deref();
+        println!("value: {value}");
+    }
+
+    #[test]
+    #[should_panic(expected="must drop all iterator's node references before clearing a VecTree")]
     fn clear_while_node_is_borrowed() {
         let mut tree = build_tree();
         let mut iter = tree.iter_depth();
         let a1_borrowed = iter.next().unwrap();
-        tree.clear();
+        // tree.clear();                // OK: doesn't compile
         let value = a1_borrowed.deref();
         println!("value: {value}");
     }
@@ -382,7 +393,7 @@ mod borrow {
         let _a2 = iter.next();
         let a = iter.next().unwrap();
         let a1_borrowed = a.iter_children().next().unwrap();
-        tree.clear();
+        // tree.clear();                // OK: doesn't compile
         let value = a1_borrowed.deref();
         println!("value: {value}");
     }
@@ -397,8 +408,8 @@ mod borrow {
         let a = iter.next().unwrap();
         let a1_borrowed = a.iter_children().next().unwrap();
         let value1 = a1_borrowed.clone();
-        let a1_mut = tree.get_mut(4);
-        *a1_mut = "new a1".to_string();
+        // let a1_mut = tree.get_mut(4);    // OK: doesn't compile
+        // *a1_mut = "new a1".to_string();  // OK: doesn't compile
         let value2 = a1_borrowed.clone();
         println!("value: {value1}, {value2}");
     }
