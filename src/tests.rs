@@ -367,6 +367,17 @@ mod borrow {
     fn clear_while_node_is_borrowed() {
         let mut tree = build_tree();
         let mut iter = tree.iter_depth();
+        let a1_borrowed = iter.next().unwrap();
+        tree.clear();
+        let value = a1_borrowed.deref();
+        println!("value: {value}");
+    }
+
+    #[test]
+    #[should_panic(expected="must drop all iterator's node references before clearing a VecTree")]
+    fn clear_while_node_is_borrowed2() {
+        let mut tree = build_tree();
+        let mut iter = tree.iter_depth();
         let _a1 = iter.next();
         let _a2 = iter.next();
         let a = iter.next().unwrap();
@@ -375,6 +386,50 @@ mod borrow {
         let value = a1_borrowed.deref();
         println!("value: {value}");
     }
+
+    #[test]
+    #[should_panic(expected="pending immutable reference(s) on children when requesting mutable reference")]
+    fn mut_while_node_is_borrowed() {
+        let mut tree = build_tree();    // [root, a, b, c, a1, a2, ...]
+        let mut iter = tree.iter_depth();
+        let _a1 = iter.next();
+        let _a2 = iter.next();
+        let a = iter.next().unwrap();
+        let a1_borrowed = a.iter_children().next().unwrap();
+        let value1 = a1_borrowed.clone();
+        let a1_mut = tree.get_mut(4);
+        *a1_mut = "new a1".to_string();
+        let value2 = a1_borrowed.clone();
+        println!("value: {value1}, {value2}");
+    }
+
+    // should not compile
+    // #[test]
+    // fn clear_while_node_is_mut_borrowed() {      // OK:
+    //     let mut tree = build_tree();             //
+    //     let mut iter = tree.iter_depth_mut();    //     |
+    //     let _a1 = iter.next().unwrap();          // 383 |         let mut iter = tree.iter_depth_mut();
+    //     let _a2 = iter.next();                   //     |                        ---- first mutable borrow occurs here
+    //     let a_mut = iter.next().unwrap();        // ...
+    //     let a1_borrowed = a_mut.iter_children()  // 388 |         tree.clear();
+    //         .next().unwrap();                    //     |         ^^^^ second mutable borrow occurs here
+    //     tree.clear();                            //
+    //     let value = a1_borrowed.deref();         //
+    //     println!("value: {value}");              //
+    // }
+
+    // should not compile
+    // #[test]
+    // fn should_not_compile() {                    // OK:
+    //     let mut tree = build_tree();             //
+    //     let mut iter = tree.iter_depth_mut();    // error[E0502]: cannot borrow `tree` as immutable because it is also borrowed as mutable
+    //     let mut a1_mut = iter.next().unwrap();   //     |
+    //     let a1_borrowed = tree.get(4);           // 398 |         let mut iter = tree.iter_depth_mut();
+    //     let value1 = a1_borrowed.clone();        //     |                        ---- mutable borrow occurs here
+    //     *a1_mut = "new a1".to_string();          // ...
+    //     let value2 = a1_borrowed.clone();        // 403 |         let a1_borrowed = tree.get(4);
+    //     println!("value: {value1}, {value2}");   //     |                           ^^^^ immutable borrow occurs here
+    // }
 }
 
 mod alternate_root {
