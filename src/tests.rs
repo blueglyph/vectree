@@ -53,7 +53,7 @@ mod general {
         let mut tree = build_tree();
         tree.clear();
         assert_eq!(tree.nodes.len(), 0);
-        assert_eq!(tree.borrows_mut.get(), 0);
+        assert_eq!(tree.borrows.get(), 0);
     }
 
     // cargo +nightly miri test --lib vectree::tests::general::clone -- --exact
@@ -307,7 +307,6 @@ mod general {
 }
 
 mod borrow {
-    use std::ops::Deref;
     use super::*;
 
     #[test]
@@ -362,62 +361,69 @@ mod borrow {
         assert_eq!(result, "root(a(A1,a2),b,c(c1,c2))");
     }
 
-    #[test]
-    #[should_panic(expected="must drop all iterator's node references before clearing a VecTree")]
-    fn clear_while_node_is_borrowed_simple() {
-        let mut tree = build_tree();
-        let mut iter = tree.iter_depth_simple();
-        let a1_borrowed = iter.next().unwrap();
-        tree.clear();                // OK: doesn't compile
-        let value = a1_borrowed.deref();
-        println!("value: {value}");
-    }
-
-    #[test]
-    #[should_panic(expected="must drop all iterator's node references before clearing a VecTree")]
-    fn clear_while_node_is_borrowed() {
-        let mut tree = build_tree();
-        let mut iter = tree.iter_depth();
-        let a1_borrowed = iter.next().unwrap();
-        // tree.clear();                // OK: doesn't compile
-        let value = a1_borrowed.deref();
-        println!("value: {value}");
-    }
-
-    #[test]
-    #[should_panic(expected="must drop all iterator's node references before clearing a VecTree")]
-    fn clear_while_node_is_borrowed2() {
-        let mut tree = build_tree();
-        let mut iter = tree.iter_depth();
-        let _a1 = iter.next();
-        let _a2 = iter.next();
-        let a = iter.next().unwrap();
-        let a1_borrowed = a.iter_children().next().unwrap();
-        // tree.clear();                // OK: doesn't compile
-        let value = a1_borrowed.deref();
-        println!("value: {value}");
-    }
-
-    #[test]
-    #[should_panic(expected="pending immutable reference(s) on children when requesting mutable reference")]
-    fn mut_while_node_is_borrowed() {
-        let mut tree = build_tree();    // [root, a, b, c, a1, a2, ...]
-        let mut iter = tree.iter_depth();
-        let _a1 = iter.next();
-        let _a2 = iter.next();
-        let a = iter.next().unwrap();
-        let a1_borrowed = a.iter_children().next().unwrap();
-        let value1 = a1_borrowed.clone();
-        // let a1_mut = tree.get_mut(4);    // OK: doesn't compile
-        // *a1_mut = "new a1".to_string();  // OK: doesn't compile
-        let value2 = a1_borrowed.clone();
-        println!("value: {value1}, {value2}");
-    }
+    // should not compile
+    //
+    // #[test]                                      // OK:
+    // fn clear_while_node_is_borrowed_simple() {   // error[E0502]: cannot borrow `tree` as mutable because it is also borrowed as immutable
+    //     let mut tree = build_tree();             // 369 |         let mut iter = tree.iter_depth_simple();
+    //     let mut iter = tree.iter_depth_simple(); //     |                        ---- immutable borrow occurs here
+    //     let a1_borrowed = iter.next().unwrap();  // 370 |         let a1_borrowed = iter.next().unwrap();
+    //     tree.clear();                            // 371 |         tree.clear();                // OK: doesn't compile
+    //     let value = a1_borrowed.deref();         //     |         ^^^^^^^^^^^^ mutable borrow occurs here
+    //     println!("value: {value}");              // 372 |         let value = a1_borrowed.deref();
+    // }                                            //     |                     ----------- immutable borrow later used here
 
     // should not compile
+    //
+    // #[test]                                     // OK:
+    // fn clear_while_node_is_borrowed() {         // error[E0502]: cannot borrow `tree` as mutable because it is also borrowed as immutable
+    //     let mut tree = build_tree();            // 380 |         let mut iter = tree.iter_depth();
+    //     let mut iter = tree.iter_depth();       //     |                        ---- immutable borrow occurs here
+    //     let a1_borrowed = iter.next().unwrap(); // 381 |         let a1_borrowed = iter.next().unwrap();
+    //     tree.clear();                           // 382 |         tree.clear();
+    //     let value = a1_borrowed.deref();        //     |         ^^^^^^^^^^^^ mutable borrow occurs here
+    //     println!("value: {value}");             // 383 |         let value = a1_borrowed.deref();
+    // }                                           //     |                     ----------- immutable borrow later used here
+
+    // should not compile
+    //
+    // #[test]
+    // fn clear_while_node_is_borrowed2() {        // OK:
+    //     let mut tree = build_tree();            // error[E0502]: cannot borrow `tree` as mutable because it is also borrowed as immutable
+    //     let mut iter = tree.iter_depth();       //     |
+    //     let _a1 = iter.next();                  // 391 |         let mut iter = tree.iter_depth();
+    //     let _a2 = iter.next();                  //     |                        ---- immutable borrow occurs here
+    //     let a = iter.next().unwrap();           // ...
+    //     let a1_borrowed = a.iter_children()     // 396 |         tree.clear();                // OK: doesn't compile
+    //         .next().unwrap();                   //     |         ^^^^^^^^^^^^ mutable borrow occurs here
+    //     tree.clear();                           // 397 |         let value = a1_borrowed.deref();
+    //     let value = a1_borrowed.deref();        //     |                     ----------- immutable borrow later used here
+    //     println!("value: {value}");
+    // }
+
+    // should not compile
+    //
+    // #[test]
+    // fn mut_while_node_is_borrowed() {           // OK:
+    //     let mut tree = build_tree();            // error[E0502]: cannot borrow `tree` as mutable because it is also borrowed as immutable
+    //     let mut iter = tree.iter_depth();       //     |
+    //     let _a1 = iter.next();                  // 405 |         let mut iter = tree.iter_depth();
+    //     let _a2 = iter.next();                  //     |                        ---- immutable borrow occurs here
+    //     let a = iter.next().unwrap();           // ...
+    //     let a1_borrowed = a.iter_children()     // 411 |         let a1_mut = tree.get_mut(4);
+    //         .next().unwrap();                   //     |                      ^^^^^^^^^^^^^^^ mutable borrow occurs here
+    //     let value1 = a1_borrowed.clone();       // 412 |         *a1_mut = "new a1".to_string();
+    //     let a1_mut = tree.get_mut(4);           // 413 |         let value2 = a1_borrowed.clone();
+    //     *a1_mut = "new a1".to_string();         //     |                      ----------- immutable borrow later used here
+    //     let value2 = a1_borrowed.clone();
+    //     println!("value: {value1}, {value2}");
+    // }
+
+    // should not compile
+    //
     // #[test]
     // fn clear_while_node_is_mut_borrowed() {      // OK:
-    //     let mut tree = build_tree();             //
+    //     let mut tree = build_tree();             // error[E0502]: cannot borrow `tree` as mutable because it is also borrowed as immutable
     //     let mut iter = tree.iter_depth_mut();    //     |
     //     let _a1 = iter.next().unwrap();          // 383 |         let mut iter = tree.iter_depth_mut();
     //     let _a2 = iter.next();                   //     |                        ---- first mutable borrow occurs here
@@ -430,6 +436,7 @@ mod borrow {
     // }
 
     // should not compile
+    //
     // #[test]
     // fn should_not_compile() {                    // OK:
     //     let mut tree = build_tree();             //
