@@ -454,7 +454,7 @@ impl<'a, T> VecTree<T> {
     /// * [NodeProxy::iter_children()], to iterate through the children with a proxy to access their children
     /// * [NodeProxy::iter_children_simple()], to iterate through the children
     /// * [NodeProxy::iter_depth_simple()], to iterate through the subtree under the node
-    pub fn iter_depth(&self) -> VecTreeIter<IterData<'a, T>> {
+    pub fn iter_depth(&'a self) -> VecTreeIter<IterData<'a, T>> {
         VecTreeIter::<IterData<'a, T>>::new(&self, self.root)
     }
 
@@ -467,7 +467,7 @@ impl<'a, T> VecTree<T> {
     /// * [NodeProxy::iter_children()], to iterate through the children with a proxy to access their children
     /// * [NodeProxy::iter_children_simple()], to iterate through the children
     /// * [NodeProxy::iter_depth_simple()], to iterate through the subtree under the node
-    pub fn iter_depth_at(&self, top: usize) -> VecTreeIter<IterData<'a, T>> {
+    pub fn iter_depth_at(&'a self, top: usize) -> VecTreeIter<IterData<'a, T>> {
         VecTreeIter::<IterData<'a, T>>::new(&self, Some(top))
     }
 
@@ -581,7 +581,7 @@ impl<T> Deref for NodeProxySimple<'_, T> {
 // -- with children
 
 impl<'a, T> VecTreeIter<IterData<'a, T>> {
-    fn new(tree: &VecTree<T>, top: Option<usize>) -> Self {
+    fn new(tree: &'a VecTree<T>, top: Option<usize>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
             depth: 0,
