@@ -9,6 +9,29 @@ A simple vector-based tree collection that provides flexible immutable and mutab
 
 The iterators are visiting the nodes in a post-order, depth-first search.
 
+## Motivation
+
+I needed a simple collection type for a tree structure that allows to iterate with depth-first search, modify the current node (so a mutable iterator) based on its value and the content of its children.
+
+After a mock-up test, a tree stored in a vector seems both quicker for the typical operations and easier to handle with the borrow checker than a pointer-based structure. The usual problem with vector-based trees is the deletion of nodes, but I didn't need that functionality. In one case, I had to replace a few nodes, but it's easy to simply leave the old nodes in the tree without referencing them, so that's what I did.
+
+## Handling Aliasing
+
+The tricky part is to allow a mutable iteration and immutably inspect a node's children in the loop since I didn't want to use recursivity when scanning the tree. It's performed by using interior mutability in each node, but rather than using `RefCell`, which would do a verification at each access, I'm using an `UnsafeCell` with home rules.
+
+An iterator returns a "proxy" — a fancy way to call a custom smart pointer — instead of a direct reference to the data. This allows to track when the item is dropped, and at the same time, it provides methods to iterate on the node's children.
+
+In short, when there's a mutable iteration on the tree, it's possible to iterate (immutably) over each node's children, but only if there's no other mutable reference in that tree at that moment. So it's not possible to store several mutable references, and then use them to obtain immutable references of their children, which could lead to mutable reference aliasing.
+
+For example, if the node "a" has one child "a1":
+- We create a mutable iterator and store the returned mutable references to "a1" (first iteration) and "a" (second iteration).
+- We use the "a" reference and iterate over its children, here only "a1". This creates an immutable reference to "a1", but there's already a mutable reference to that node.
+
+In the example above, the method that creates the 2nd immutable iterator would panic because there are other mutable references than the one on "a". But if the mutable reference to "a1" is dropped before creating the immutable iterator, everything is fine. 
+
+## Is It Safe?
+
+I'm not entirely pleased with this system, but in the scope of what I needed, I found no aliases. They're either refused at compilation time or detected at runtime, but there is currently no formal proof that all the cases have been accounted for.
 
 ## Examples
 
