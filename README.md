@@ -18,7 +18,7 @@ After a mock-up test, a tree stored in a vector seems both quicker for the typic
 
 ## Handling Aliasing
 
-The tricky part is to allow a mutable iteration and immutably inspect a node's children in the loop since I didn't want to use recursivity when scanning the tree. It's performed by using interior mutability in each node, but rather than using `RefCell`, which would do a verification at each access, I'm using an `UnsafeCell` with home rules.
+The tricky part is to allow a mutable iteration and immutably inspect a node's children in the loop, since I didn't want to use recursivity when scanning the tree. It's performed by using interior mutability in each node, but rather than using `RefCell`, which would do a verification at each access, I'm using an `UnsafeCell` with home rules.
 
 An iterator returns a "proxy" — a fancy way to call a custom smart pointer — instead of a direct reference to the data. This allows to track when the item is dropped, and at the same time, it provides methods to iterate on the node's children.
 
