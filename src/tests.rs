@@ -45,12 +45,40 @@ mod general {
     #[test]
     fn test_build_tree() {
         let tree = build_tree();
+        assert_eq!(tree.get_root(), Some(0));
         assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1,c2))");
     }
 
     #[test]
-    fn clear() {
+    fn tree_build_methods() {
+        let mut tree = VecTree::new();
+        assert_eq!(tree.is_empty(), true);
+        assert_eq!(tree.len(), 0);
+        assert_eq!(tree.depth(), None);
+        let a = tree.add(None, "a");
+        assert_eq!(tree.is_empty(), false);
+        let root = tree.addci(None, "root", a);
+        let b = tree.add(None, "b");
+        tree.attach_children(root, [&b]);
+        tree.addc(Some(root), "c", "c1");
+        tree.addc_iter(Some(b), "b1", ["b11", "b12"]);
+        tree.set_root(root);
+        assert_eq!(tree_to_string(&tree), "root(a,b(b1(b11,b12)),c(c1))");
+        assert_eq!(tree.len(), 8);
+        assert_eq!(tree.depth(), Some(3));
+    }
+
+    #[test]
+    fn tree_build_methods2() {
         let mut tree = build_tree();
+        for mut leaf in tree.iter_depth_mut() {
+            assert_eq!(leaf.borrows.get(), 1);
+            *leaf = format!("_{}_", *leaf);
+        }
+        assert_eq!(tree[0].has_children(), true);
+        assert_eq!(tree[0].children, [1, 2, 3]);
+        tree.get_mut(0).make_ascii_uppercase();
+        assert_eq!(tree_to_string(&tree), "_ROOT_(_a_(_a1_,_a2_),_b_,_c_(_c1_,_c2_))");
         tree.clear();
         assert_eq!(tree.nodes.len(), 0);
         assert_eq!(tree.borrows.get(), 0);
@@ -267,7 +295,7 @@ mod general {
     fn iter_depth_mut_children() {
         let mut tree = build_tree();
         for mut inode in tree.iter_depth_mut() {
-            // condition: any child j begins with 'c' and has all j's children k begin with 'c'
+            // condition: any child j begins with 'c' and has all j's children k (if any) begin with 'c'
             let sub_is_c = inode.iter_children()
                 .any(|j| {
                     j.to_lowercase().starts_with('c') &&
