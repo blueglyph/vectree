@@ -234,7 +234,7 @@ mod general {
         let mut tree = build_tree();
         let mut result = String::new();
         let mut result_index = vec![];
-        for mut inode in tree.iter_depth_simple_mut_at(3) {
+        for mut inode in tree.iter_depth_simple_at_mut(3) {
             *inode = inode.to_uppercase();
             result.push_str(&inode);
             result.push(',');
@@ -280,7 +280,7 @@ mod general {
         let mut tree = build_tree();
         let mut result = String::new();
         let mut result_index = vec![];
-        for mut inode in tree.iter_depth_mut_at(3) {
+        for mut inode in tree.iter_depth_at_mut(3) {
             *inode = inode.to_uppercase();
             result.push_str(&inode);
             result.push(',');

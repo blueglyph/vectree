@@ -1,6 +1,118 @@
 // Copyright 2025 Redglyph
 //
 
+//! A simple vector-based tree collection that provides flexible immutable and mutable iterators. See the [VecTree] type for a list of methods.
+//!
+//! ## Building the tree
+//!
+//! The nodes are manipulated by their indices, which are returned by the methods adding a node to the tree.
+//!
+//! Example:
+//!
+//! ```rust
+//! use vectree::VecTree;
+//!
+//! fn build_tree() -> VecTree<String> {
+//!     // use `with_capacity` if you know the number of nodes:
+//!     let mut tree = VecTree::new();
+//!
+//!     // adds the tree root:
+//!     let root: usize = tree.add_root("root".to_string());
+//!
+//!     // adds three children to the root:
+//!     let a = tree.add(Some(root), "a".to_string());
+//!     let _ = tree.add(Some(root), "b".to_string());
+//!     let c = tree.add(Some(root), "c".to_string());
+//!
+//!     // adds children to existing nodes, "_iter" = from anything iterable
+//!     tree.add_iter(Some(a), ["a1".to_string(), "a2".to_string()]);
+//!     tree.add_iter(Some(c), ["c1", "c2"].map(|s| s.to_string()));
+//!
+//!     tree
+//! }
+//! ```
+//!
+//! The following methods are used to add nodes:
+//! * [VecTree::add]`(&mut self, parent_index: Option<usize>, item: T)`
+//! * [VecTree::addc]`(&mut self, parent_index: Option<usize>, item: T, child: T)`
+//! * [VecTree::addci]`(&mut self, parent_index: Option<usize>, item: T, child_id: usize)`
+//! * [VecTree::addci_iter]`(&mut self, parent_index: Option<usize>, item: T, children_id: IntoIterator<Item = usize>)`
+//! * [VecTree::add_iter]`(&mut self, parent_index: Option<usize>, items: IntoIterator<Item = T>)`
+//! * [VecTree::addc_iter]`(&mut self, parent_index: Option<usize>, item: T, children: IntoIterator<Item = T>)`
+//!
+//! The key to the names is
+//! * "c" when a child or children can be specified
+//! * "i" when indices are used instead of data, if those nodes were previously added to the tree
+//! * "iter" when items are provided by anything iterable, like an array or an iterator
+//!
+//! ## Iterators
+//!
+//! The iterators are visiting the nodes in a post-order, depth-first search. There are simple and full-fledged iterators
+//! * the "simple" iterators give a mutable / immutable reference to each node but not to its children
+//! * the "full-fledged" iterators give a mutable / immutable reference to each node and immutable access to its children, with a variety of iterators.
+//!
+//! List of simple iterators:
+//! * [VecTree::iter_depth_simple] (from the top)
+//! * [VecTree::iter_depth_simple_mut] (from the top, mutable reference to node)
+//! * [VecTree::iter_depth_simple_at] (from a specific node)
+//! * [VecTree::iter_depth_simple_at_mut] (from a specific node, mutable reference to node)
+//!
+//! List of full-fledged iterators:
+//! * [VecTree::iter_depth] (from the top)
+//! * [VecTree::iter_depth_mut] (from the top, mutable reference to node)
+//! * [VecTree::iter_depth_at] (from a specific node)
+//! * [VecTree::iter_depth_at_mut] (from a specific node, mutable reference to node)
+//!
+//! The full-fledged iterators add the following methods to the "proxy" (smart pointer) returned by the iterator:
+//! * [NodeProxy::num_children()], to get the number of children
+//! * [NodeProxy::iter_children()], to iterate over the children with a proxy to access their children
+//! * [NodeProxy::iter_children_simple()], to iterate over the children
+//! * [NodeProxy::iter_depth_simple()], to iterate the subtree under the node
+//!
+//! Examples
+//!
+//! Simple iterator:
+//!
+//! ```rust,ignore
+//! let mut tree = build_tree();
+//! let mut result = String::new();
+//! let mut result_index = vec![];
+//! let mut result_depth = vec![];
+//! for inode in tree.iter_depth_simple() {
+//!     result.push_str(&inode.to_uppercase());
+//!     result.push(',');
+//!     result_index.push(inode.index);
+//!     result_depth.push(inode.depth);
+//! }
+//! assert_eq!(result, "A1,A2,A,B,C1,C2,C,ROOT,");
+//! assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
+//! assert_eq!(result_depth, [2, 2, 1, 1, 2, 2, 1, 0]);
+//! ```
+//!
+//! More complex iterator that gives access to the node's children:
+//!
+//! ```rust,ignore
+//! let mut tree = build_tree();
+//! for mut inode in tree.iter_depth_mut() {
+//!     // condition: any child j begins with 'c' and
+//!     //                        all j's children k (if any) begin with 'c'
+//!     let sub_is_c = inode.iter_children()
+//!         .any(|j| {
+//!             j.to_lowercase().starts_with('c') &&
+//!                 j.iter_children().all(|k| k.to_lowercase().starts_with('c'))
+//!         });
+//!     if sub_is_c {
+//!         *inode = inode.to_uppercase();
+//!     }
+//! }
+//! let result = tree_to_string(&tree);
+//! assert_eq!(result, "ROOT(a(a1,a2),b,C(c1,c2))");
+//! ```
+//!
+//! ## Important limitation
+//!
+//! The [VecTree] object doesn't provide methods to delete nodes.
+
 use std::cell::{Cell, UnsafeCell};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
@@ -9,7 +121,7 @@ use std::ptr::NonNull;
 
 mod tests;
 
-/// A vector-based tree collection type. Each node is of type [Node<T>].
+/// A vector-based tree collection type. Each node is of type [`Node<T>`].
 #[derive(Debug)]
 pub struct VecTree<T> {
     nodes: Vec<Node<T>>,
@@ -17,7 +129,7 @@ pub struct VecTree<T> {
     root: Option<usize>
 }
 
-/// A node of a [VecTree<T>] collection. It holds a data of type `<T>` and a list
+/// A node of a [`VecTree<T>`] collection. It holds a data of type `<T>` and a list
 /// of indices to its children in the tree collection.
 #[derive(Debug)]
 pub struct Node<T> {
@@ -190,8 +302,9 @@ impl<'a, T> VecTree<T> {
 
     /// Calculates the tree depth, which is the maximum number of levels (not including the root).
     ///
-    /// Note that the depth returned by the iterators are zero-based, and thus `iterator.depth`
-    /// is between `0` and `tree.depth()`.
+    /// Notes:
+    /// * The depth returned by the iterators are zero-based, and thus `iterator.depth` is between `0` and `tree.depth()`.
+    /// * This method iterates over all the nodes, so it's not time-effective.
     ///
     /// Returns `None` if the tree has no root.
     pub fn depth(&self) -> Option<u32> {
@@ -438,7 +551,7 @@ impl<'a, T> VecTree<T> {
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
-    /// the node of index [top].
+    /// the node of index `top`.
     ///
     /// The iterator returns a proxy for each node, which gives an immutable reference only to that node.
     pub fn iter_depth_simple_at(&'a self, top: usize) -> VecTreeIter<IterDataSimple<'a, T>> {
@@ -459,7 +572,7 @@ impl<'a, T> VecTree<T> {
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
-    /// the node of index [top].
+    /// the node of index `top`.
     ///
     /// The iterator returns a proxy for each node, which gives an immutable reference to that node
     /// and its children with the following methods:
@@ -480,10 +593,10 @@ impl<'a, T> VecTree<T> {
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
-    /// the node of index [top].
+    /// the node of index `top`.
     ///
     /// The iterator returns a proxy for each node, which gives a mutable reference only to that node.
-    pub fn iter_depth_simple_mut_at(&'a mut self, top: usize) -> VecTreeIter<IterDataSimpleMut<'a, T>> {
+    pub fn iter_depth_simple_at_mut(&'a mut self, top: usize) -> VecTreeIter<IterDataSimpleMut<'a, T>> {
         VecTreeIter::<IterDataSimpleMut<'a, T>>::new(self, Some(top))
     }
 
@@ -501,7 +614,7 @@ impl<'a, T> VecTree<T> {
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
-    /// the node of index [top].
+    /// the node of index `top`.
     ///
     /// The iterator returns a proxy for each node, which gives a mutable reference to that node
     /// and an immutable reference its children with the following methods:
@@ -509,7 +622,7 @@ impl<'a, T> VecTree<T> {
     /// * [NodeProxy::iter_children()], to iterate over the children with a proxy to access their children
     /// * [NodeProxy::iter_children_simple()], to iterate over the children
     /// * [NodeProxy::iter_depth_simple()], to iterate the subtree under the node
-    pub fn iter_depth_mut_at(&'a mut self, top: usize) -> VecTreeIter<IterDataMut<'a, T>> {
+    pub fn iter_depth_at_mut(&'a mut self, top: usize) -> VecTreeIter<IterDataMut<'a, T>> {
         VecTreeIter::<IterDataMut<'a, T>>::new(self, Some(top))
     }
 
