@@ -452,6 +452,12 @@ impl<T: Clone> Clone for VecTree<T> {
     }
 }
 
+impl<T> Default for VecTree<T> {
+    fn default() -> Self {
+        VecTree::new()
+    }
+}
+
 impl<T: Clone> Clone for Node<T> {
     fn clone(&self) -> Self {
         Node {
