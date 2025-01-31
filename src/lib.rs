@@ -120,6 +120,7 @@ use std::ops::{Deref, DerefMut, Index, IndexMut};
 use std::ptr::NonNull;
 
 mod tests;
+mod compile_tests;
 
 /// A vector-based tree collection type. Each node is of type [`Node<T>`].
 #[derive(Debug)]
@@ -315,6 +316,9 @@ impl<'a, T> VecTree<T> {
     ///
     /// Panics if the index is out of the buffer bounds.
     pub fn get(&self, index: usize) -> &T {
+        // SAFETY: The access to the `UnsafeCell<T> data` field is secured by the compiler:
+        //         the method can't be called if a mutable borrow is alive (either given by .get_mut or
+        //         by a NodeProxyMut)
         unsafe { &*self.nodes.get(index).unwrap().data.get() }
     }
 
@@ -461,6 +465,7 @@ impl<T> Default for VecTree<T> {
 impl<T: Clone> Clone for Node<T> {
     fn clone(&self) -> Self {
         Node {
+            // SAFETY: We're cloning, so there is no reference to the newly created field.
             data: UnsafeCell::new(unsafe { (*self.data.get()).clone() }),
             children: self.children.clone()
         }
@@ -665,11 +670,15 @@ impl<'a, T> TreeDataIter for IterDataSimple<'a, T> {
     type TProxy = NodeProxySimple<'a, T>;
 
     fn get_children(&self, index: usize) -> &[usize] {
+        // SAFETY: We manually check `index`.
         assert!(index < self.tree.len());
         unsafe { &(*self.tree.nodes.as_ptr().add(index)).children }
     }
 
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
+        // SAFETY: - We manually check `index`, so the data reference can't be null.
+        //         - The borrow returned by this method has the same lifetime as self, so no
+        //           mutable borrow is possible while it's alive.
         assert!(index < self.tree.len());
         NodeProxySimple {
             index,
@@ -693,6 +702,9 @@ impl<T> Deref for NodeProxySimple<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
+        // SAFETY: - The data lives as long as the proxy.
+        //         - The borrow returned by this method has the same lifetime as self, so no
+        //           mutable borrow is possible while it's alive.
         unsafe { self.data.as_ref() }
     }
 }
