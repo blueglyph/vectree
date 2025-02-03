@@ -1,4 +1,8 @@
 #![allow(unused)]
+#![cfg(doctest)]
+
+// IMPORTANT: Run the test in +nightly to verify the error codes
+//            (Cargo doesn't test them in the stable version...)
 
 mod borrows {
     /// ```compile_fail,E0502
