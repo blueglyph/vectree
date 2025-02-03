@@ -332,6 +332,51 @@ mod general {
         let result = tree_to_string(&tree);
         assert_eq!(result, "ROOT(A(A1,A2),B,C(C1,C2))");
     }
+
+    #[test]
+    #[should_panic(expected="node index 3 doesn't exist")]
+    fn bad_index_set_root() {
+        let mut tree = VecTree::with_capacity(3);
+        let root = tree.add_root("a");
+        tree.add(Some(root), "a1");
+        tree.add(None, "not bound to root");
+        assert_eq!(tree.len(), 3);
+        tree.set_root(3);
+    }
+
+    #[test]
+    #[should_panic(expected="node index 4 doesn't exist")]
+    fn bad_index_addci() {
+        let mut tree = VecTree::with_capacity(3);
+        let a1 = tree.add(None, "a1");
+        let root = tree.addci(None, "a", a1);
+        tree.set_root(root);
+        tree.addci(Some(a1), "a2", 4);
+    }
+
+    #[test]
+    #[should_panic(expected="node index 5 doesn't exist")]
+    fn bad_index_addci_iter() {
+        let mut tree = VecTree::with_capacity(3);
+        let a1 = tree.add(None, "a1");
+        let a2 = tree.add(None, "a2");
+        let root = tree.addci_iter(None, "a", [a1, a2, 5]);
+        tree.set_root(root);
+    }
+
+    #[test]
+    #[should_panic(expected="node index 6 doesn't exist")]
+    fn bad_index_get_children() {
+        let mut tree = VecTree::with_capacity(3);
+        let root = tree.add_root("a");
+        tree.add_iter(Some(root), ["a1", "a2"]);
+        tree[root].children.push(6);
+        let mut result = Vec::new();
+        for child in tree.iter_depth() {
+            result.push(child.to_string());
+        }
+        assert_eq!(result, ["a1", "a2"]);
+    }
 }
 
 mod borrow {

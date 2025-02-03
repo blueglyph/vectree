@@ -184,7 +184,7 @@ impl<'a, T> VecTree<T> {
     ///   or referenced as children indices with methods like [`VecTree::addci()`]. However,
     ///   the user is responsible for preserving the integrity of the tree when doing so.
     pub fn set_root(&mut self, index: usize) -> usize {
-        assert!(index < self.nodes.len());
+        assert!(index < self.nodes.len(), "node index {index} doesn't exist");
         self.root = Some(index);
         index
     }
@@ -239,6 +239,7 @@ impl<'a, T> VecTree<T> {
     /// buffer size, the method panics. If `parent_index` is `None`, the item must be attached to
     /// the tree another way.
     pub fn addci(&mut self, parent_index: Option<usize>, item: T, child_id: usize) -> usize {
+        assert!(child_id < self.len(), "child node index {child_id} doesn't exist");
         let node_id = self.add(parent_index, item);
         self.nodes[node_id].children.push(child_id);
         node_id
@@ -252,7 +253,10 @@ impl<'a, T> VecTree<T> {
     /// the tree another way.
     pub fn addci_iter<U: IntoIterator<Item = usize>>(&mut self, parent_index: Option<usize>, item: T, children_id: U) -> usize {
         let node_id = self.add(parent_index, item);
-        self.nodes[node_id].children.extend(children_id);
+        for child_id in children_id {
+            assert!(child_id < self.len(), "child node index {child_id} doesn't exist");
+            self.nodes[node_id].children.push(child_id);
+        }
         node_id
     }
 
@@ -671,7 +675,7 @@ impl<'a, T> TreeDataIter for IterDataSimple<'a, T> {
 
     fn get_children(&self, index: usize) -> &[usize] {
         // SAFETY: We manually check `index`.
-        assert!(index < self.tree.len());
+        assert!(index < self.tree.len(), "node index {index} doesn't exist");
         unsafe { &(*self.tree.nodes.as_ptr().add(index)).children }
     }
 
@@ -679,7 +683,7 @@ impl<'a, T> TreeDataIter for IterDataSimple<'a, T> {
         // SAFETY: - We manually check `index`, so the data reference can't be null.
         //         - The borrow returned by this method has the same lifetime as self, so no
         //           mutable borrow is possible while it's alive.
-        assert!(index < self.tree.len());
+        assert!(index < self.tree.len(), "node index {index} doesn't exist");
         NodeProxySimple {
             index,
             depth,
@@ -738,14 +742,18 @@ impl<'a, T> TreeDataIter for IterData<'a, T> {
     type TProxy = NodeProxy<'a, T>;
 
     fn get_children(&self, index: usize) -> &[usize] {
-        assert!(index < self.tree_size);
+        // SAFETY: We manually check `index`.
+        assert!(index < self.tree_size, "node index {index} doesn't exist");
         unsafe {
             &self.tree_nodes_ptr.add(index).as_ref().unwrap().children
         }
     }
 
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
-        assert!(index < self.tree_size);
+        // SAFETY: - We manually check `index`, so the data reference can't be null.
+        //         - The borrow returned by this method has the same lifetime as self, so no
+        //           mutable borrow is possible while it's alive.
+        assert!(index < self.tree_size, "node index {index} doesn't exist");
         NodeProxy {
             index,
             depth,
@@ -771,15 +779,19 @@ pub struct NodeProxy<'a, T> {
 impl<'a, T> NodeProxy<'a, T> {
     /// Gets the number of children of the node.
     pub fn num_children(&self) -> usize {
+        // SAFETY: `self.index` has been verified when the proxy was created.
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.len()
     }
 
     /// Iterates over the node's children with a proxy to access their children.
     pub fn iter_children(&self) -> impl DoubleEndedIterator<Item=NodeProxy<'_, T>> {
+        // SAFETY: - `self.index` has been verified when the proxy was created.
+        //         - The children indices have been verified when they were added.
+        //           (If an index was bad, it would have been detected before anyway)
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.iter().map(|&index| {
-            assert!(index < self.tree_size);
+            assert!(index < self.tree_size, "node index {index} doesn't exist");
             NodeProxy {
                 index,
                 depth: self.depth + 1,
@@ -793,6 +805,8 @@ impl<'a, T> NodeProxy<'a, T> {
 
     /// Iterates over the node's children.
     pub fn iter_children_simple(&self) -> impl DoubleEndedIterator<Item=&T> {
+        // SAFETY: - `self.index` has been verified when the proxy was created.
+        //         - The children indices have been verified when they were added.
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.iter().map(|&c| unsafe { &*(*self.tree_node_ptr.add(c)).data.get() })
     }
@@ -816,6 +830,9 @@ impl<T> Deref for NodeProxy<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
+        // SAFETY: - The data lives as long as the proxy.
+        //         - The borrow returned by this method has the same lifetime as self, so no
+        //           mutable borrow is possible while it's alive.
         unsafe { self.data.as_ref() }
     }
 }
@@ -844,12 +861,16 @@ impl<'a, T> TreeDataIter for IterDataSimpleMut<'a, T> {
     type TProxy = NodeProxySimpleMut<'a, T>;
 
     fn get_children(&self, index: usize) -> &[usize] {
-        assert!(index < self.tree.len());
+        // SAFETY: We manually check `index`.
+        assert!(index < self.tree.len(), "node index {index} doesn't exist");
         unsafe { &(*self.tree.nodes.as_ptr().add(index)).children }
     }
 
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
-        assert!(index < self.tree.len());
+        // SAFETY: - We manually check `index`, so the data reference can't be null.
+        //         - The borrow returned by this method has the same lifetime as self, so no
+        //           mutable borrow is possible while it's alive.
+        assert!(index < self.tree.len(), "node index {index} doesn't exist");
         NodeProxySimpleMut {
             index,
             depth,
@@ -872,12 +893,18 @@ impl<T> Deref for NodeProxySimpleMut<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
+        // SAFETY: - The data lives as long as the proxy.
+        //         - The borrow returned by this method has the same lifetime as self, so no
+        //           mutable borrow is possible while it's alive.
         unsafe { self.data.as_ref() }
     }
 }
 
 impl<T> DerefMut for NodeProxySimpleMut<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        // SAFETY: - The data lives as long as the proxy.
+        //         - The borrow returned by this method has the same lifetime as self, so no
+        //           immutable borrow is possible while it's alive.
         unsafe { self.data.as_mut() }
     }
 }
@@ -913,16 +940,23 @@ impl<'a, T> TreeDataIter for IterDataMut<'a, T> {
     type TProxy = NodeProxyMut<'a, T>;
 
     fn get_children(&self, index: usize) -> &[usize] {
-        assert!(index < self.tree_size);
+        // SAFETY: We manually check `index`.
+        assert!(index < self.tree_size, "node index {index} doesn't exist");
         unsafe {
             &self.tree_nodes_ptr.add(index).as_ref().unwrap().children
         }
     }
 
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
+        // IterDataMut can spawn immutable iterators, so we keep track of how many mutable proxies (which
+        // work as smart pointers) are alive. If more than one is alive, it is forbidden to spawn an
+        // immutable iterator, since it would violate the aliasing rule.
         let c = self.borrows.get() + 1;
         self.borrows.set(c);
-        assert!(index < self.tree_size);
+        // SAFETY: - We manually check `index`, so the data reference can't be null.
+        //         - The borrow returned by this method has the same lifetime as self, so no
+        //           mutable borrow is possible while it's alive.
+        assert!(index < self.tree_size, "node index {index} doesn't exist");
         NodeProxyMut {
             index,
             depth,
@@ -950,17 +984,22 @@ pub struct NodeProxyMut<'a, T> {
 impl<'a, T> NodeProxyMut<'a, T> {
     /// Gets the number of children of the node.
     pub fn num_children(&self) -> usize {
+        // SAFETY: `self.index` has been verified when the proxy was created.
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.len()
     }
 
     /// Iterates over the node's children with a proxy to access their children (immutably).
     pub fn iter_children(&self) -> impl DoubleEndedIterator<Item = NodeProxy<'_, T>> {
+        // SAFETY: - We manually check that no mutable borrow is alive before handing a reference to the content of `UnsafeCell<T> data`.
+        //         - While such a reference (immutable borrow) is alive, the compiler doesn't allow any immutable borrow on the VecTree.
+        //         - `self.index` has been verified when the proxy was created.
+        //         - The children indices have been verified when they were added.
         let c = self.borrows.get();
         assert!(c <= 1, "{} extra pending mutable reference(s) on children when requesting immutable references on them", c - 1);
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.iter().map(|&index| {
-            assert!(index < self.tree_size);
+            assert!(index < self.tree_size, "node index {index} doesn't exist");
             NodeProxy {
                 index,
                 depth: self.depth + 1,
@@ -974,6 +1013,8 @@ impl<'a, T> NodeProxyMut<'a, T> {
 
     /// Iterates over the node's children (immutably).
     pub fn iter_children_simple(&self) -> impl DoubleEndedIterator<Item=&T> {
+        // SAFETY: - `self.index` has been verified when the proxy was created.
+        //         - The children indices have been verified when they were added.
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.iter().map(|&c| unsafe { &*(*self.tree_node_ptr.add(c)).data.get() })
     }
@@ -997,12 +1038,18 @@ impl<T> Deref for NodeProxyMut<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
+        // SAFETY: - The data lives as long as the proxy.
+        //         - The borrow returned by this method has the same lifetime as self, so no
+        //           mutable borrow is possible while it's alive.
         unsafe { self.data.as_ref() }
     }
 }
 
 impl<T> DerefMut for NodeProxyMut<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        // SAFETY: - The data lives as long as the proxy.
+        //         - The borrow returned by this method has the same lifetime as self, so no
+        //           immutable borrow is possible while it's alive.
         unsafe { self.data.as_mut() }
     }
 }
