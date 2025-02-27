@@ -59,7 +59,7 @@ mod general {
         assert_eq!(tree.is_empty(), false);
         let root = tree.addci(None, "root", a);
         let b = tree.add(None, "b");
-        tree.attach_children(root, [&b]);
+        tree.attach_children(root, [b]);
         tree.addc(Some(root), "c", "c1");
         tree.addc_iter(Some(b), "b1", ["b11", "b12"]);
         tree.set_root(root);
