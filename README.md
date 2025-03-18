@@ -1,9 +1,8 @@
-<!--
 [![crate](https://img.shields.io/crates/v/vectree.svg)](https://crates.io/crates/vectree)
 [![documentation](https://docs.rs/vectree/badge.svg)](https://docs.rs/vectree)
 [![license](https://img.shields.io/badge/License-MIT%202.0-blue.svg)](https://github.com/blueglyph/vectree/blob/master/LICENSE-MIT)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/blueglyph/vectree/blob/master/LICENSE-APACHE)
--->
+
 # `vectree` crate
 
 A simple vector-based tree collection that provides flexible immutable and mutable iterators.
@@ -32,7 +31,7 @@ In the example above, the method that creates the 2nd immutable iterator would p
 
 ## Is It Safe?
 
-I'm not entirely pleased with this system, but in the scope of what I needed, I found no aliases. They're either refused at compilation time or detected at runtime, but there is currently no formal proof that all the cases have been accounted for.
+I'm not entirely pleased with this system yet, but in the scope of what I needed, I found no aliases. They're either refused at compilation time or detected at runtime, but there is currently no formal proof that all the cases have been accounted for.
 
 ## Examples
 
