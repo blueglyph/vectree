@@ -286,6 +286,11 @@ impl<'a, T> VecTree<T> {
         index
     }
 
+    /// Attaches one existing child to an existing parent.
+    pub fn attach_child(&mut self, parent_index: usize, child_index: usize) {
+        self.nodes[parent_index].children.push(child_index);
+    }
+
     /// Attaches existing children to an existing parent.
     pub fn attach_children<U: IntoIterator<Item = usize>>(&mut self, parent_index: usize, children_index: U) {
         self.nodes[parent_index].children.extend(children_index);

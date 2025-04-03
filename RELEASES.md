@@ -1,3 +1,7 @@
+# 0.1.5 (2025-04-03)
+
+- add `VecTree::attach_child` method
+
 # 0.1.4 (2025-03-18)
 
 - initial published crate

@@ -66,6 +66,9 @@ mod general {
         assert_eq!(tree_to_string(&tree), "root(a,b(b1(b11,b12)),c(c1))");
         assert_eq!(tree.len(), 8);
         assert_eq!(tree.depth(), Some(3));
+        let b2 = tree.add(None, "b2");
+        tree.attach_child(b, b2);
+        assert_eq!(tree_to_string(&tree), "root(a,b(b1(b11,b12),b2),c(c1))");
     }
 
     #[test]
