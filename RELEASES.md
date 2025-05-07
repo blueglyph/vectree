@@ -1,3 +1,7 @@
+# 0.1.6 (2025-05-07)
+
+- fix a few lint warnings
+
 # 0.1.5 (2025-04-03)
 
 - add `VecTree::attach_child` method

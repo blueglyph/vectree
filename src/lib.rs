@@ -148,7 +148,7 @@ enum VisitNode<T> {
 
 // ---------------------------------------------------------------------------------------------
 
-impl<'a, T> VecTree<T> {
+impl<T> VecTree<T> {
     /// Creates a new and empty tree, with no pre-allocated buffer.
     ///
     /// If the number of items is known in advance, prefer the [`VecTree::with_capacity()`] method.
@@ -527,7 +527,7 @@ pub trait TreeDataIter {
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy;
 }
 
-impl<'a, TData: TreeDataIter> Iterator for VecTreeIter<TData> {
+impl<TData: TreeDataIter> Iterator for VecTreeIter<TData> {
     type Item = TData::TProxy;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -537,10 +537,10 @@ impl<'a, TData: TreeDataIter> Iterator for VecTreeIter<TData> {
                 VisitNode::Down(index) => {
                     let children = self.data.get_children(index);
                     if children.is_empty() {
-                        Some(index.clone())
+                        Some(index)
                     } else {
                         self.depth += 1;
-                        self.stack.push(VisitNode::Up(index.clone()));
+                        self.stack.push(VisitNode::Up(index));
                         for index in children.iter().rev() {
                             self.stack.push(VisitNode::Down(*index));
                         }
@@ -588,7 +588,7 @@ impl<'a, T> VecTree<T> {
     /// * [NodeProxy::iter_children_simple()], to iterate over the children
     /// * [NodeProxy::iter_depth_simple()], to iterate the subtree under the node
     pub fn iter_depth(&'a self) -> VecTreeIter<IterData<'a, T>> {
-        VecTreeIter::<IterData<'a, T>>::new(&self, self.root)
+        VecTreeIter::<IterData<'a, T>>::new(self, self.root)
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
@@ -601,7 +601,7 @@ impl<'a, T> VecTree<T> {
     /// * [NodeProxy::iter_children_simple()], to iterate over the children
     /// * [NodeProxy::iter_depth_simple()], to iterate the subtree under the node
     pub fn iter_depth_at(&'a self, top: usize) -> VecTreeIter<IterData<'a, T>> {
-        VecTreeIter::<IterData<'a, T>>::new(&self, Some(top))
+        VecTreeIter::<IterData<'a, T>>::new(self, Some(top))
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
@@ -663,7 +663,7 @@ impl<'a, T> VecTreeIter<IterDataSimple<'a, T>> {
         VecTreeIter {
             stack: Vec::new(),
             depth: 0,
-            next: top.map(|id| VisitNode::Down(id)),
+            next: top.map(VisitNode::Down),
             data: IterDataSimple { tree },
         }
     }
@@ -725,7 +725,7 @@ impl<'a, T> VecTreeIter<IterData<'a, T>> {
         VecTreeIter {
             stack: Vec::new(),
             depth: 0,
-            next: top.map(|id| VisitNode::Down(id)),
+            next: top.map(VisitNode::Down),
             data: IterData {
                 tree_nodes_ptr: tree.nodes.as_ptr(),
                 tree_size: tree.nodes.len(),
@@ -850,7 +850,7 @@ impl<'a, T> VecTreeIter<IterDataSimpleMut<'a, T>> {
         VecTreeIter {
             stack: Vec::new(),
             depth: 0,
-            next: top.map(|id| VisitNode::Down(id)),
+            next: top.map(VisitNode::Down),
             data: IterDataSimpleMut { tree },
         }
     }
@@ -921,7 +921,7 @@ impl<'a, T> VecTreeIter<IterDataMut<'a, T>> {
         VecTreeIter {
             stack: Vec::new(),
             depth: 0,
-            next: top.map(|id| VisitNode::Down(id)),
+            next: top.map(VisitNode::Down),
             data: IterDataMut {
                 tree_nodes_ptr: tree.nodes.as_mut_ptr(),
                 tree_size: tree.nodes.len(),
