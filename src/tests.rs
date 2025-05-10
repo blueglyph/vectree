@@ -1,3 +1,6 @@
+// Copyright 2025 Redglyph
+//
+
 #![cfg(test)]
 
 use std::fmt::Display;
