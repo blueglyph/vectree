@@ -561,21 +561,21 @@ impl<TData: TreeDataIter> Iterator for VecTreePoDfsIter<TData> {
     }
 }
 
-impl<'a, T> VecTree<T> {
+impl<'a: 'i,'i, T> VecTree<T> {
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
     /// its root node.
     ///
     /// The iterator returns a proxy for each node, which gives an immutable reference only to that node.
-    pub fn iter_depth_simple(&'a self) -> VecTreePoDfsIter<IterDataSimple<'a, T>> {
-        VecTreePoDfsIter::<IterDataSimple<'a, T>>::new(self, self.root)
+    pub fn iter_depth_simple(&'a self) -> VecTreePoDfsIter<IterDataSimple<'i, T>> {
+        VecTreePoDfsIter::<IterDataSimple<'i, T>>::new(self, self.root)
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
     /// the node of index `top`.
     ///
     /// The iterator returns a proxy for each node, which gives an immutable reference only to that node.
-    pub fn iter_depth_simple_at(&'a self, top: usize) -> VecTreePoDfsIter<IterDataSimple<'a, T>> {
-        VecTreePoDfsIter::<IterDataSimple<'a, T>>::new(self, Some(top))
+    pub fn iter_depth_simple_at(&'a self, top: usize) -> VecTreePoDfsIter<IterDataSimple<'i, T>> {
+        VecTreePoDfsIter::<IterDataSimple<'i, T>>::new(self, Some(top))
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
@@ -587,8 +587,8 @@ impl<'a, T> VecTree<T> {
     /// * [NodeProxy::iter_children()], to iterate over the children with a proxy to access their children
     /// * [NodeProxy::iter_children_simple()], to iterate over the children
     /// * [NodeProxy::iter_depth_simple()], to iterate the subtree under the node
-    pub fn iter_depth(&'a self) -> VecTreePoDfsIter<IterData<'a, T>> {
-        VecTreePoDfsIter::<IterData<'a, T>>::new(self, self.root)
+    pub fn iter_depth(&'a self) -> VecTreePoDfsIter<IterData<'i, T>> {
+        VecTreePoDfsIter::<IterData<'i, T>>::new(self, self.root)
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
@@ -600,24 +600,24 @@ impl<'a, T> VecTree<T> {
     /// * [NodeProxy::iter_children()], to iterate over the children with a proxy to access their children
     /// * [NodeProxy::iter_children_simple()], to iterate over the children
     /// * [NodeProxy::iter_depth_simple()], to iterate the subtree under the node
-    pub fn iter_depth_at(&'a self, top: usize) -> VecTreePoDfsIter<IterData<'a, T>> {
-        VecTreePoDfsIter::<IterData<'a, T>>::new(self, Some(top))
+    pub fn iter_depth_at(&'a self, top: usize) -> VecTreePoDfsIter<IterData<'i, T>> {
+        VecTreePoDfsIter::<IterData<'i, T>>::new(self, Some(top))
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
     /// its root node.
     ///
     /// The iterator returns a proxy for each node, which gives a mutable reference only to that node.
-    pub fn iter_depth_simple_mut(&'a mut self) -> VecTreePoDfsIter<IterDataSimpleMut<'a, T>> {
-        VecTreePoDfsIter::<IterDataSimpleMut<'a, T>>::new(self, self.root)
+    pub fn iter_depth_simple_mut(&'a mut self) -> VecTreePoDfsIter<IterDataSimpleMut<'i, T>> {
+        VecTreePoDfsIter::<IterDataSimpleMut<'i, T>>::new(self, self.root)
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
     /// the node of index `top`.
     ///
     /// The iterator returns a proxy for each node, which gives a mutable reference only to that node.
-    pub fn iter_depth_simple_at_mut(&'a mut self, top: usize) -> VecTreePoDfsIter<IterDataSimpleMut<'a, T>> {
-        VecTreePoDfsIter::<IterDataSimpleMut<'a, T>>::new(self, Some(top))
+    pub fn iter_depth_simple_at_mut(&'a mut self, top: usize) -> VecTreePoDfsIter<IterDataSimpleMut<'i, T>> {
+        VecTreePoDfsIter::<IterDataSimpleMut<'i, T>>::new(self, Some(top))
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
@@ -629,8 +629,8 @@ impl<'a, T> VecTree<T> {
     /// * [NodeProxy::iter_children()], to iterate over the children with a proxy to access their children
     /// * [NodeProxy::iter_children_simple()], to iterate over the children
     /// * [NodeProxy::iter_depth_simple()], to iterate the subtree under the node
-    pub fn iter_depth_mut(&'a mut self) -> VecTreePoDfsIter<IterDataMut<'a, T>> {
-        VecTreePoDfsIter::<IterDataMut<'a, T>>::new(self, self.root)
+    pub fn iter_depth_mut(&'a mut self) -> VecTreePoDfsIter<IterDataMut<'i, T>> {
+        VecTreePoDfsIter::<IterDataMut<'i, T>>::new(self, self.root)
     }
 
     /// Post-order, depth-first search iteration over all the nodes of the [VecTree], starting at
@@ -642,8 +642,8 @@ impl<'a, T> VecTree<T> {
     /// * [NodeProxy::iter_children()], to iterate over the children with a proxy to access their children
     /// * [NodeProxy::iter_children_simple()], to iterate over the children
     /// * [NodeProxy::iter_depth_simple()], to iterate the subtree under the node
-    pub fn iter_depth_at_mut(&'a mut self, top: usize) -> VecTreePoDfsIter<IterDataMut<'a, T>> {
-        VecTreePoDfsIter::<IterDataMut<'a, T>>::new(self, Some(top))
+    pub fn iter_depth_at_mut(&'a mut self, top: usize) -> VecTreePoDfsIter<IterDataMut<'i, T>> {
+        VecTreePoDfsIter::<IterDataMut<'i, T>>::new(self, Some(top))
     }
 
     /// Clears the tree content.
@@ -658,7 +658,7 @@ impl<'a, T> VecTree<T> {
 // ---------------------------------------------------------------------------------------------
 // Immutable iterator
 
-impl<'a, T> VecTreePoDfsIter<IterDataSimple<'a, T>> {
+impl<'a: 'i, 'i, T> VecTreePoDfsIter<IterDataSimple<'i, T>> {
     fn new(tree: &'a VecTree<T>, top: Option<usize>) -> Self {
         VecTreePoDfsIter {
             stack: Vec::new(),
@@ -781,7 +781,7 @@ pub struct NodeProxy<'a, T> {
     _marker: PhantomData<&'a T>
 }
 
-impl<'a, T> NodeProxy<'a, T> {
+impl<'a: 'i, 'i, T> NodeProxy<'a, T> {
     /// Gets the number of children of the node.
     pub fn num_children(&self) -> usize {
         // SAFETY: `self.index` has been verified when the proxy was created.
@@ -817,7 +817,7 @@ impl<'a, T> NodeProxy<'a, T> {
     }
 
     /// Iterates the subtree under the node.
-    pub fn iter_depth_simple(&'a self) -> VecTreePoDfsIter<IterData<'a, T>> {
+    pub fn iter_depth_simple(&'a self) -> VecTreePoDfsIter<IterData<'i, T>> {
         VecTreePoDfsIter {
             stack: Vec::new(),
             depth: 0,
@@ -986,7 +986,7 @@ pub struct NodeProxyMut<'a, T> {
     _marker: PhantomData<&'a mut T>     // must be invariant for T
 }
 
-impl<'a, T> NodeProxyMut<'a, T> {
+impl<'a: 'i, 'i, T> NodeProxyMut<'a, T> {
     /// Gets the number of children of the node.
     pub fn num_children(&self) -> usize {
         // SAFETY: `self.index` has been verified when the proxy was created.
@@ -1025,7 +1025,7 @@ impl<'a, T> NodeProxyMut<'a, T> {
     }
 
     /// Iterates the subtree under the node (immutably).
-    pub fn iter_depth_simple(&'a self) -> VecTreePoDfsIter<IterData<'a, T>> {
+    pub fn iter_depth_simple(&'a self) -> VecTreePoDfsIter<IterData<'i, T>> {
         VecTreePoDfsIter {
             stack: Vec::new(),
             depth: 0,
