@@ -1,3 +1,8 @@
+# 0.2.0 (2025-08-20)
+
+- add `num_children()` to iter_depth_simple's node
+- separate lifetimes of self and iterator in implementations
+
 # 0.1.6 (2025-05-07)
 
 - fix a few lint warnings

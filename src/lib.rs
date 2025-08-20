@@ -692,6 +692,7 @@ impl<'a, T> TreeDataIter for IterDataSimple<'a, T> {
         NodeProxySimple {
             index,
             depth,
+            num_children: unsafe { &(*self.tree.nodes.as_ptr().add(index)).children }.len(),
             data: unsafe { NonNull::new_unchecked((*self.tree.nodes.as_ptr().add(index)).data.get()) },
             _marker: PhantomData
         }
@@ -703,8 +704,16 @@ impl<'a, T> TreeDataIter for IterDataSimple<'a, T> {
 pub struct NodeProxySimple<'a, T> {
     pub index: usize,
     pub depth: u32,
+    num_children: usize,
     data: NonNull<T>,
     _marker: PhantomData<&'a T>
+}
+
+impl<T> NodeProxySimple<'_, T> {
+    /// Gets the number of children of the node.
+    pub fn num_children(&self) -> usize {
+        self.num_children
+    }
 }
 
 impl<T> Deref for NodeProxySimple<'_, T> {
