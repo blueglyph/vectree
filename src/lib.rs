@@ -353,7 +353,7 @@ impl<T> VecTree<T> {
     }
 }
 
-impl<'a, T:'a + Clone> VecTree<T> {
+impl<T: Clone> VecTree<T> {
     /// Adds items from another `VecTree` and returns the index of the top item. This method
     /// can be used to copy another tree or part of another tree into the current one.
     ///
@@ -405,13 +405,91 @@ impl<'a, T:'a + Clone> VecTree<T> {
     /// // => tree: root(a(a1, a2), b(a(a1, a2)), c)
     /// //                           ^^^^^^^^^^^
     /// ```
-    pub fn add_from_tree_iter<U>(&mut self, parent_index: Option<usize>, items: U) -> usize
-        where U: Iterator<Item=NodeProxy<'a, T>>
+    pub fn add_from_tree_iter<'a, U>(&mut self, parent_index: Option<usize>, items: U) -> usize
+    where
+        U: IntoIterator<Item=NodeProxy<'a, T>>,
+        T: 'a
+    {
+        self.add_from_tree_iter_callback(parent_index, items, move |_, _, _| {})
+    }
+
+    /// Adds items from another `VecTree` and returns the index of the top item. This method
+    /// can be used to copy another tree or part of another tree into the current one.
+    ///
+    /// For further details, see [VecTree::add_from_tree].
+    ///
+    /// The callback function, `f(to, from, item)` gives the following parameters:
+    /// * `to: usize` is the index where the new item will be stored in the destination tree
+    /// * `from: usize` is the index where the original item is in the source tree
+    /// * `item: &T` is a reference to the item in the source tree
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use vectree::VecTree;
+    /// # fn main() {
+    /// let mut tree = VecTree::new();
+    /// let root = tree.add_root("root".to_string());
+    /// let a = tree.add(Some(root), "a".to_string());
+    /// tree.add(Some(a), "a1".to_string());
+    /// tree.add(Some(root), "b".to_string());
+    /// let mut result = Vec::<(usize, usize, String)>::new();
+    /// let mut other = VecTree::new();
+    /// other.add_from_tree_callback(
+    ///     None,
+    ///     &tree,
+    ///     Some(a),
+    ///     |to, from, item| result.push((to, from, item.clone())) );
+    /// assert_eq!(result, vec![(0, 2, "a1".to_string()), (1, 1, "a".to_string())]);
+    /// # }
+    /// ```
+    pub fn add_from_tree_callback<'a, F>(&mut self, parent_index: Option<usize>, tree: &'a VecTree<T>, top: Option<usize>, f: F) -> usize
+    where
+        F: FnMut(usize, usize, &T),
+        T: 'a
+    {
+        self.add_from_tree_iter_callback(parent_index, tree.iter_depth_at(top.unwrap_or_else(|| tree.get_root().unwrap())), f)
+    }
+
+    /// Adds items from a `VecTree` iterator and returns the index of the top item. This method
+    /// can be used to copy another tree or part of another tree into the current one.
+    ///
+    /// The callback function, `f(to, from, item)` gives the following parameters:
+    /// * `to: usize` is the index where the new item will be stored in the destination tree
+    /// * `from: usize` is the index where the original item is in the source tree
+    /// * `item: &T` is a reference to the item in the source tree
+    ///
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use vectree::VecTree;
+    /// # fn main() {
+    /// let mut tree = VecTree::new();
+    /// let root = tree.add_root("root".to_string());
+    /// let a = tree.add(Some(root), "a".to_string());
+    /// tree.add(Some(a), "a1".to_string());
+    /// tree.add(Some(root), "b".to_string());
+    /// let mut result = Vec::<(usize, usize, String)>::new();
+    /// let mut other = VecTree::new();
+    /// other.add_from_tree_iter_callback(
+    ///     None,
+    ///     tree.iter_depth_at(a),
+    ///     |to, from, item| result.push((to, from, item.clone())) );
+    /// assert_eq!(result, vec![(0, 2, "a1".to_string()), (1, 1, "a".to_string())]);
+    /// # }
+    /// ```
+    pub fn add_from_tree_iter_callback<'a, U, F>(&mut self, parent_index: Option<usize>, items: U, mut f: F) -> usize
+    where
+        U: IntoIterator<Item=NodeProxy<'a, T>>,
+        T: 'a,
+        F: FnMut(usize, usize, &T),
     {
         let mut stack = Vec::<usize>::new();
         for item in items {
             let node = item.deref().clone();
             let num_children = item.num_children();
+            f(self.nodes.len(), item.index, item.deref());
             let index = if num_children > 0 {
                 let children = stack.split_off(stack.len() - num_children);
                 self.addci_iter(None, node, children)

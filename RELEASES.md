@@ -1,3 +1,7 @@
+# 0.2.1 (2025-08-22)
+
+- add `add_from_tree_callback` and `add_from_tree_iter_callback` methods, which are similar to `add_from_tree` and `add_from_tree_iter`, respectively, but add a callback function giving the source index, destination index, and reference of each copied item.
+
 # 0.2.0 (2025-08-20)
 
 - add `num_children()` to iter_depth_simple's node

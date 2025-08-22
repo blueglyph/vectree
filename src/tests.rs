@@ -9,20 +9,39 @@ use crate::VecTree;
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
-fn node_to_string<T: Display>(tree: &VecTree<T>, index: usize) -> String {
-    let mut result = tree.get(index).to_string();
+fn node_to_string<T: Display>(tree: &VecTree<T>, index: usize, show_index: bool) -> String {
+    let mut result = if show_index { format!("{index}:{}", tree.get(index)) } else { tree.get(index).to_string() };
     let children = tree.children(index);
     if !children.is_empty() {
         result.push_str("(");
-        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c)).collect::<Vec<_>>().join(","));
+        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c, show_index)).collect::<Vec<_>>().join(","));
         result.push_str(")");
     }
     result
 }
 
-pub(crate) fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
+pub fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
     if let Some(id) = tree.root {
-        node_to_string(tree, id)
+        node_to_string(tree, id, false)
+    } else {
+        "None".to_string()
+    }
+}
+
+// fn node_to_string_index<T: Display>(tree: &VecTree<T>, index: usize) -> String {
+//     let mut result = format!("{index}:{}", tree.get(index));
+//     let children = tree.children(index);
+//     if !children.is_empty() {
+//         result.push_str("(");
+//         result.push_str(&children.iter().map(|&c| node_to_string_index(&tree, c)).collect::<Vec<_>>().join(","));
+//         result.push_str(")");
+//     }
+//     result
+// }
+
+pub fn tree_to_string_index<T: Display>(tree: &VecTree<T>) -> String {
+    if let Some(id) = tree.root {
+        node_to_string(tree, id, true)
     } else {
         "None".to_string()
     }
@@ -200,6 +219,66 @@ mod general {
         assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
         tree.add_from_tree(Some(4), &other, Some(3));
         assert_eq!(tree_to_string(&tree), "root(a(a1(c(c1,c2)),a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
+    }
+
+    #[test]
+    fn add_from_tree_iter_callback() {
+        const VERBOSE: bool = false;
+        let mut tree = build_tree();
+        let other = tree.clone();
+        let mut result_trace = vec![];
+        let expected_trace = vec![
+            (8, 4, "a1".to_string()), (9, 5, "a2".to_string()), (10, 1, "a".to_string()), (11, 2, "b".to_string()),
+            (12, 6, "c1".to_string()), (13, 7, "c2".to_string()), (14, 3, "c".to_string()), (15, 0, "root".to_string())
+        ];
+        tree.add_from_tree_iter_callback(Some(6), other.iter_depth(), |to, from, item| result_trace.push((to, from, item.clone())));
+        if VERBOSE {
+            println!("from: {}", tree_to_string_index(&other));
+            println!("to  : {}", tree_to_string_index(&tree));
+            println!("trace: {result_trace:?}");
+        }
+        assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
+        assert_eq!(result_trace, expected_trace);
+        let mut result_trace = vec![];
+        let expected_trace = vec![(16, 6, "c1".to_string()), (17, 7, "c2".to_string()), (18, 3, "c".to_string())];
+        tree.add_from_tree_iter_callback(Some(4), other.iter_depth_at(3), |to, from, item| result_trace.push((to, from, item.clone())));
+        if VERBOSE {
+            println!("from: {}", tree_to_string_index(&other));
+            println!("to  : {}", tree_to_string_index(&tree));
+            println!("trace: {result_trace:?}");
+        }
+        assert_eq!(tree_to_string(&tree), "root(a(a1(c(c1,c2)),a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
+        assert_eq!(result_trace, expected_trace);
+    }
+
+    #[test]
+    fn add_from_tree_callback() {
+        const VERBOSE: bool = false;
+        let mut tree = build_tree();
+        let other = tree.clone();
+        let mut result_trace = vec![];
+        let expected_trace = vec![
+            (8, 4, "a1".to_string()), (9, 5, "a2".to_string()), (10, 1, "a".to_string()), (11, 2, "b".to_string()),
+            (12, 6, "c1".to_string()), (13, 7, "c2".to_string()), (14, 3, "c".to_string()), (15, 0, "root".to_string())
+        ];
+        tree.add_from_tree_callback(Some(6), &other, None, |to, from, item| result_trace.push((to, from, item.clone())));
+        if VERBOSE {
+            println!("from: {}", tree_to_string_index(&other));
+            println!("to  : {}", tree_to_string_index(&tree));
+            println!("trace: {result_trace:?}");
+        }
+        assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
+        assert_eq!(result_trace, expected_trace);
+        let mut result_trace = vec![];
+        let expected_trace = vec![(16, 6, "c1".to_string()), (17, 7, "c2".to_string()), (18, 3, "c".to_string())];
+        tree.add_from_tree_callback(Some(4), &other, Some(3), |to, from, item| result_trace.push((to, from, item.clone())));
+        if VERBOSE {
+            println!("from: {}", tree_to_string_index(&other));
+            println!("to  : {}", tree_to_string_index(&tree));
+            println!("trace: {result_trace:?}");
+        }
+        assert_eq!(tree_to_string(&tree), "root(a(a1(c(c1,c2)),a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
+        assert_eq!(result_trace, expected_trace);
     }
 
     // cargo +nightly miri test --lib vectree::tests::general::iter_depth_children -- --exact
