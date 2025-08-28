@@ -559,6 +559,62 @@ impl<T: Clone> Clone for Node<T> {
     }
 }
 
+// This trait is used as a bound for both usize and &usize. It would be otherwise impossible
+// to implement From for iterators on both types (except by using Borrow, which produces
+// the same optimized code but is conceptually contradictory with what we do).
+trait IntoUsize {
+    fn into_usize(self) -> usize;
+}
+
+impl IntoUsize for usize {
+    fn into_usize(self) -> usize { self }
+}
+
+impl IntoUsize for &usize {
+    fn into_usize(self) -> usize { *self }
+}
+
+impl<T, A, C> From<(Option<usize>, A)> for VecTree<T>
+where
+    A: IntoIterator<Item=(T, C)>,
+    C: IntoIterator<Item: IntoUsize>,
+{
+    /// Creates a [VecTree] from a tuple `(r, array)`, where
+    /// * `r` is an optional root index
+    /// * `array` is any collection that can be converted into an iterator of `(T, &[usize])`,
+    ///   `T` being the node value at that index and the slice being the enumeration of its
+    ///   children indices.
+    ///
+    /// ## Example
+    /// ```rust
+    /// # use vectree::VecTree;
+    /// let tree = VecTree::from((
+    ///     Some(0),
+    ///     vec![
+    ///         ("root", vec![1, 2]),
+    ///         ("a",    vec![3, 4]),
+    ///         ("b",    vec![]),
+    ///         ("a.1",  vec![]),
+    ///         ("a.2",  vec![]),
+    ///     ]
+    /// ));
+    /// let str = tree.iter_depth_simple()
+    ///     .map(|n| format!("{}:{}", n.depth, *n))
+    ///     .collect::<Vec<_>>()
+    ///     .join(", ");
+    /// assert_eq!(str, "2:a.1, 2:a.2, 1:a, 1:b, 0:root");
+    /// ```
+    fn from((root, nodes): (Option<usize>, A)) -> Self {
+        VecTree {
+            nodes: nodes.into_iter()
+                .map(|(value, children)| Node { data: UnsafeCell::new(value), children: children.into_iter().map(|c| c.into_usize()).collect() })
+                .collect(),
+            borrows: Cell::new(0),
+            root,
+        }
+    }
+}
+
 impl<T: Display> Display for VisitNode<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {

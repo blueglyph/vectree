@@ -118,6 +118,117 @@ mod general {
         assert_eq!(tree_to_string(&other_tree), "root(a(a1,a2),b,c(c1,c2))");
     }
 
+    #[test]
+    fn from() {
+        let data1: (Option<usize>, Vec<(&str, &[usize])>) = (
+            Some(1),    // root
+            vec![
+                ("a",       &[3, 4]),       // 0
+                ("root",    &[0, 2]),       // 1
+                ("b",       &[5, 6, 7]),    // 2
+                ("a1",      &[]),           // 3
+                ("a2",      &[8]),          // 4
+                ("b1",      &[]),           // 5
+                ("b2",      &[]),           // 6
+                ("b3",      &[]),           // 7
+                ("a21",     &[9, 10]),      // 8
+                ("a211",    &[]),           // 9
+                ("a212",    &[]),           // 10
+            ]
+        );
+        let tree = VecTree::from(data1);
+        assert_eq!(tree_to_string(&tree), "root(a(a1,a2(a21(a211,a212))),b(b1,b2,b3))");
+
+        static DATA2: (Option<usize>, [(&str, &[usize]); 11]) = (
+            Some(1),    // root
+            [
+                ("a",       &[3, 4]),       // 0
+                ("root",    &[0, 2]),       // 1
+                ("b",       &[5, 6, 7]),    // 2
+                ("a1",      &[]),           // 3
+                ("a2",      &[8]),          // 4
+                ("b1",      &[]),           // 5
+                ("b2",      &[]),           // 6
+                ("b3",      &[]),           // 7
+                ("a21",     &[9, 10]),      // 8
+                ("a211",    &[]),           // 9
+                ("a212",    &[]),           // 10
+            ]
+        );
+        let tree = VecTree::from(DATA2);
+        assert_eq!(tree_to_string(&tree), "root(a(a1,a2(a21(a211,a212))),b(b1,b2,b3))");
+
+        static DATA3: (Option<usize>, &[(&str, &[usize]); 11]) = (
+            Some(1),    // root
+            &[
+                ("a",       &[3, 4]),       // 0
+                ("root",    &[0, 2]),       // 1
+                ("b",       &[5, 6, 7]),    // 2
+                ("a1",      &[]),           // 3
+                ("a2",      &[8]),          // 4
+                ("b1",      &[]),           // 5
+                ("b2",      &[]),           // 6
+                ("b3",      &[]),           // 7
+                ("a21",     &[9, 10]),      // 8
+                ("a211",    &[]),           // 9
+                ("a212",    &[]),           // 10
+            ]
+        );
+        let tree = VecTree::from((DATA3.0, DATA3.1.into_iter().map(|(s, c)| (s, c.into_iter().copied()))));
+        assert_eq!(tree_to_string(&tree), "root(a(a1,a2(a21(a211,a212))),b(b1,b2,b3))");
+
+        let tree = VecTree::from((
+            Some(0),
+            vec![
+                ("root", vec![1, 2]),
+                ("a",    vec![3, 4]),
+                ("b",    vec![]),
+                ("a.1",  vec![]),
+                ("a.2",  vec![]),
+            ]
+        ));
+        let str = tree.iter_depth_simple()
+            .map(|n| format!("{}:{}", n.depth, *n))
+            .collect::<Vec<_>>()
+            .join(",");
+        assert_eq!(str, "2:a.1,2:a.2,1:a,1:b,0:root");
+    }
+
+    #[test]
+    fn from_array() {
+        static DATA: [(Option<usize>, &[(&str, &[usize])]); 2] = [
+            (Some(0),    // root
+             &[
+                 ("root",   &[1, 2]),       // 1
+                 ("a",      &[3, 4]),       // 0
+                 ("b",      &[]),           // 2
+                 ("a1",     &[]),           // 3
+                 ("a2",     &[]),           // 4
+             ]),
+            (Some(1),    // root
+             &[
+                 ("a",      &[3, 4]),       // 0
+                 ("root",   &[0, 2]),       // 1
+                 ("b",      &[5, 6, 7]),    // 2
+                 ("a1",     &[]),           // 3
+                 ("a2",     &[8]),          // 4
+                 ("b1",     &[]),           // 5
+                 ("b2",     &[]),           // 6
+                 ("b3",     &[]),           // 7
+                 ("a21",    &[9, 10]),      // 8
+                 ("a211",   &[]),           // 9
+                 ("a212",   &[]),           // 10
+             ]),
+        ];
+        // let tree = DATA.into_iter()
+        //     .map(|(root, children)| VecTree::from((root, children.into_iter().map(|(s, c)| (*s, c.into_iter().copied())))));
+        let tree = DATA.into_iter()
+            .map(|(root, children)| VecTree::from((root, children.to_vec())));
+
+        let result = tree.into_iter().map(|t| tree_to_string(&t)).collect::<Vec<_>>();
+        assert_eq!(result, vec!["root(a(a1,a2),b)", "root(a(a1,a2(a21(a211,a212))),b(b1,b2,b3))"]);
+    }
+
     // cargo +nightly miri test --lib vectree::tests::general::iter_depth_children_simple -- --exact
     #[test]
     fn iter_depth_simple() {
