@@ -345,6 +345,13 @@ impl<T> VecTree<T> {
         self.nodes.get(index).unwrap().children.as_slice()
     }
 
+    /// Returns a mutable reference to the item's children.
+    ///
+    /// Panics if the index is out of the buffer bounds.
+    pub fn children_mut(&mut self, index: usize) -> &mut Vec<usize> {
+        &mut self.nodes.get_mut(index).unwrap().children
+    }
+
     /// Returns an iterator to the item's children, by reference.
     ///
     /// Panics if the index is out of the buffer bounds.

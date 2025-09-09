@@ -1,3 +1,7 @@
+# 0.2.3 (2025-09-09)
+
+- add `children_mut` method to get a mutable reference to an item's children.
+
 # 0.2.2 (2025-08-28)
 
 - add `From<(Option<usize>, IntoIterator<Item=(T, IntoIterator)>)>` implementation that allows to import a VecTree from an iterable set of data (which could be static, depending on `T`).
