@@ -95,7 +95,7 @@ mod general {
     #[test]
     fn tree_build_methods2() {
         let mut tree = build_tree();
-        for mut leaf in tree.iter_depth_mut() {
+        for mut leaf in tree.iter_post_depth_mut() {
             assert_eq!(leaf.borrows.get(), 1);
             *leaf = format!("_{}_", *leaf);
         }
@@ -186,7 +186,7 @@ mod general {
                 ("a.2",  vec![]),
             ]
         ));
-        let str = tree.iter_depth_simple()
+        let str = tree.iter_post_depth_simple()
             .map(|n| format!("{}:{}", n.depth, *n))
             .collect::<Vec<_>>()
             .join(",");
@@ -226,7 +226,7 @@ mod general {
         assert_eq!(result, vec!["root(a(a1,a2),b)", "root(a(a1,a2(a21(a211,a212))),b(b1,b2,b3))"]);
     }
 
-    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_children_simple -- --exact
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_post_simple -- --exact
     #[test]
     fn iter_depth_post_simple() {
         let tree = build_tree();
@@ -234,7 +234,7 @@ mod general {
         let mut result_index = vec![];
         let mut result_depth = vec![];
         let mut result_num_children = vec![];
-        for inode in tree.iter_depth_simple() {
+        for inode in tree.iter_post_depth_simple() {
             result.push_str(&inode.to_uppercase());
             result.push(',');
             // println!("- {}: {} [{}]", inode.depth, *inode, inode.index);
@@ -275,7 +275,7 @@ mod general {
         let tree = build_tree();
         let mut result = String::new();
         let mut result_index = vec![];
-        for inode in tree.iter_depth_simple_at(3) {
+        for inode in tree.iter_post_depth_simple_at(3) {
             result.push_str(&inode);
             result.push(',');
             result_index.push(inode.index);
@@ -292,7 +292,7 @@ mod general {
         let mut result_index = vec![];
         let mut result_num_children = vec![];
         let mut result_size_subtree = vec![];
-        for inode in tree.iter_depth() {
+        for inode in tree.iter_post_depth() {
             let main_lineage = inode.to_lowercase().starts_with('c')
                 || inode.iter_children().any(|n| n.to_lowercase().starts_with('c'));
             let main_lineage_simple = inode.to_lowercase().starts_with('c')
@@ -307,7 +307,7 @@ mod general {
             result_index.push(inode.index);
             result_num_children.push(inode.num_children());
             let mut n = 0;
-            for _ichild in inode.iter_depth_simple() {
+            for _ichild in inode.iter_post_depth_simple() {
                 n += 1;
             }
             result_size_subtree.push(n);
@@ -323,7 +323,7 @@ mod general {
         let tree = build_tree();
         let mut result = String::new();
         let mut result_index = vec![];
-        for inode in tree.iter_depth_at(3) {
+        for inode in tree.iter_post_depth_at(3) {
             result.push_str(&inode);
             result.push(',');
             result_index.push(inode.index);
@@ -336,9 +336,9 @@ mod general {
     fn add_from_tree_iter() {
         let mut tree = build_tree();
         let other = tree.clone();
-        tree.add_from_tree_iter(Some(6), other.iter_depth());
+        tree.add_from_tree_iter(Some(6), other.iter_post_depth());
         assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
-        tree.add_from_tree_iter(Some(4), other.iter_depth_at(3));
+        tree.add_from_tree_iter(Some(4), other.iter_post_depth_at(3));
         assert_eq!(tree_to_string(&tree), "root(a(a1(c(c1,c2)),a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
     }
 
@@ -362,7 +362,7 @@ mod general {
             (8, 4, "a1".to_string()), (9, 5, "a2".to_string()), (10, 1, "a".to_string()), (11, 2, "b".to_string()),
             (12, 6, "c1".to_string()), (13, 7, "c2".to_string()), (14, 3, "c".to_string()), (15, 0, "root".to_string())
         ];
-        tree.add_from_tree_iter_callback(Some(6), other.iter_depth(), |to, from, item| result_trace.push((to, from, item.clone())));
+        tree.add_from_tree_iter_callback(Some(6), other.iter_post_depth(), |to, from, item| result_trace.push((to, from, item.clone())));
         if VERBOSE {
             println!("from: {}", tree_to_string_index(&other));
             println!("to  : {}", tree_to_string_index(&tree));
@@ -372,7 +372,7 @@ mod general {
         assert_eq!(result_trace, expected_trace);
         let mut result_trace = vec![];
         let expected_trace = vec![(16, 6, "c1".to_string()), (17, 7, "c2".to_string()), (18, 3, "c".to_string())];
-        tree.add_from_tree_iter_callback(Some(4), other.iter_depth_at(3), |to, from, item| result_trace.push((to, from, item.clone())));
+        tree.add_from_tree_iter_callback(Some(4), other.iter_post_depth_at(3), |to, from, item| result_trace.push((to, from, item.clone())));
         if VERBOSE {
             println!("from: {}", tree_to_string_index(&other));
             println!("to  : {}", tree_to_string_index(&tree));
@@ -417,7 +417,7 @@ mod general {
     fn iter_depth_children() {
         let tree = build_tree();
         let mut result = String::new();
-        for inode in tree.iter_depth() {
+        for inode in tree.iter_post_depth() {
             // condition: any child j begins with 'c' and has all j's children k begin with 'c'
             let sub_is_c = inode.iter_children()
                 .any(|j| {
@@ -439,7 +439,7 @@ mod general {
     fn iter_depth_simple_mut() {
         let mut tree = build_tree();
         let mut result_index = vec![];
-        for mut inode in tree.iter_depth_simple_mut() {
+        for mut inode in tree.iter_post_depth_simple_mut() {
             *inode = inode.to_uppercase();
             result_index.push(inode.index);
         }
@@ -453,7 +453,7 @@ mod general {
         let mut tree = build_tree();
         let mut result = String::new();
         let mut result_index = vec![];
-        for mut inode in tree.iter_depth_simple_at_mut(3) {
+        for mut inode in tree.iter_post_depth_simple_at_mut(3) {
             *inode = inode.to_uppercase();
             result.push_str(&inode);
             result.push(',');
@@ -470,7 +470,7 @@ mod general {
         let mut result_index = vec![];
         let mut result_num_children = vec![];
         let mut result_size_subtree = vec![];
-        for mut inode in tree.iter_depth_mut() {
+        for mut inode in tree.iter_post_depth_mut() {
             let main_lineage = inode.to_lowercase().starts_with('c')
                 || inode.iter_children().any(|n| n.to_lowercase().starts_with('c'));
             let main_lineage_simple = inode.to_lowercase().starts_with('c')
@@ -482,7 +482,7 @@ mod general {
             result_index.push(inode.index);
             result_num_children.push(inode.num_children());
             let mut n = 0;
-            for _ichild in inode.iter_depth_simple() {
+            for _ichild in inode.iter_post_depth_simple() {
                 n += 1;
             }
             result_size_subtree.push(n);
@@ -499,7 +499,7 @@ mod general {
         let mut tree = build_tree();
         let mut result = String::new();
         let mut result_index = vec![];
-        for mut inode in tree.iter_depth_at_mut(3) {
+        for mut inode in tree.iter_post_depth_at_mut(3) {
             *inode = inode.to_uppercase();
             result.push_str(&inode);
             result.push(',');
@@ -513,7 +513,7 @@ mod general {
     #[test]
     fn iter_depth_mut_children() {
         let mut tree = build_tree();
-        for mut inode in tree.iter_depth_mut() {
+        for mut inode in tree.iter_post_depth_mut() {
             // condition: any child j begins with 'c' and has all j's children k (if any) begin with 'c'
             let sub_is_c = inode.iter_children()
                 .any(|j| {
@@ -555,7 +555,7 @@ mod general {
         let mut pre = String::new();
         for node in tree.iter_pre_depth() {
             pre.push_str(&node.to_string());
-            let children = node.iter_depth_simple()
+            let children = node.iter_post_depth_simple()
                 .skip_last()
                 .map(|n| n.to_string())
                 .collect::<Vec<_>>().join(",");
@@ -574,7 +574,7 @@ mod general {
     #[test]
     fn iter_depth_mut_children_simple_miri() {
         let mut tree = build_tree();
-        let inodes = tree.iter_depth_simple_mut().collect::<Vec<_>>();
+        let inodes = tree.iter_post_depth_simple_mut().collect::<Vec<_>>();
         for mut inode in inodes {
             *inode = inode.to_uppercase();
         }
@@ -586,7 +586,7 @@ mod general {
     #[test]
     fn iter_depth_mut_children_miri() {
         let mut tree = build_tree();
-        let inodes = tree.iter_depth_mut().collect::<Vec<_>>();
+        let inodes = tree.iter_post_depth_mut().collect::<Vec<_>>();
         for mut inode in inodes {
             *inode = inode.to_uppercase();
         }
@@ -633,7 +633,7 @@ mod general {
         tree.add_iter(Some(root), ["a1", "a2"]);
         tree[root].children.push(6);
         let mut result = Vec::new();
-        for child in tree.iter_depth() {
+        for child in tree.iter_post_depth() {
             result.push(child.to_string());
         }
         assert_eq!(result, ["a1", "a2"]);
@@ -647,7 +647,7 @@ mod borrow {
     #[should_panic(expected="pending mutable reference(s) on children")]
     fn iter_depth_mut_children_bad() {
         let mut tree = build_tree();
-        let inodes = tree.iter_depth_mut().collect::<Vec<_>>();
+        let inodes = tree.iter_post_depth_mut().collect::<Vec<_>>();
         for mut inode in inodes {
             // condition: any child j begins with 'c' and has all j's children k begin with 'c'
             let sub_is_c = inode.iter_children()
@@ -675,7 +675,7 @@ mod borrow {
         let mut tree = build_tree();
         {
             // a1,a2,a,b,c1,c2,c,root
-            let mut inodes = tree.iter_depth_mut();
+            let mut inodes = tree.iter_post_depth_mut();
             let mut a1_write = inodes.next().unwrap();  // taking   a1
             inodes.next();                              // skipping a2
             let a_write = inodes.next().unwrap();       // taking   a
@@ -721,13 +721,13 @@ mod alternate_root {
     fn test_iterators() {
         let mut tree = build_tree2();
         let mut result = String::new();
-        for i in tree.iter_depth_simple() {
+        for i in tree.iter_post_depth_simple() {
             result.push_str(&format!("{}:{}", i.index, &i.to_string()));
             result.push(',');
         }
         assert_eq!(result, "4:a1,5:a2,0:a,1:b,6:c1,7:c2,2:c,3:root,");
         result.clear();
-        for i in tree.iter_depth() {
+        for i in tree.iter_post_depth() {
             result.push_str(&format!("{}:{}", i.index, &i.to_string()));
             if i.num_children() > 0 {
                 result.push('(');
@@ -740,13 +740,13 @@ mod alternate_root {
             result.push(',');
         }
         assert_eq!(result, "4:a1,5:a2,0:a(a1,a2,),1:b,6:c1,7:c2,2:c(c1,c2,),3:root(a,b,c,),");
-        for mut i in tree.iter_depth_simple_mut() {
+        for mut i in tree.iter_post_depth_simple_mut() {
             if i.starts_with("a") {
                 *i = i.to_uppercase();
             }
         }
         assert_eq!(tree_to_string(&tree), "root(A(A1,A2),b,c(c1,c2))");
-        for mut i in tree.iter_depth_mut() {
+        for mut i in tree.iter_post_depth_mut() {
             if i.index != 3 && i.num_children() > 0 {
                 *i = "-".to_string();
             }

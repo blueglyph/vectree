@@ -1,3 +1,15 @@
+# 0.4.0 (2026-02-03)
+
+- rename post-order iterators (this obviously breaks back-compatibility)
+  - `iter_depth_simple` to `iter_post_depth_simple` (including node iterator)
+  - `iter_depth_simple_at` to `iter_post_depth_simple_at`
+  - `iter_depth` to `iter_post_depth`
+  - `iter_depth_at` to `iter_post_depth_at`
+  - `iter_depth_simple_mut` to `iter_post_depth_simple_mut`
+  - `iter_depth_simple_at_mut` to `iter_post_depth_simple_at_mut`
+  - `iter_depth_mut` to `iter_post_depth_mut`
+  - `iter_depth_at_mut` to `iter_post_depth_at_mut`
+
 # 0.3.0 (2026-02-03)
 
 - add `skip_last` iterator adapter, which can be useful when iterating over the children of an iterator node, since the last child item will be the current item (root of the subtree)

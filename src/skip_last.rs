@@ -2,7 +2,7 @@
 //
 
 //! This crate offers a [skip_last](SkipLastIterator::skip_last) iterator adapter for convenience
-//! when a post-order iterator such as [iter_depth_simple](crate::NodeProxy::iter_depth_simple) is used
+//! when a post-order iterator such as [iter_post_depth_simple](crate::NodeProxy::iter_post_depth_simple) is used
 //! on a depth-first iterator node. Since the post-order search ends with the top item itself,
 //! which is the root of the children subtree, it may be desirable to skip it if it's not
 //! required at all.
@@ -12,7 +12,7 @@
 //! ```ignored
 //! for node in tree.iter_pre_depth() {
 //!     print!("node {}: ", *node);
-//!     let children = node.iter_depth_simple()
+//!     let children = node.iter_post_depth_simple()
 //!         .skip_last()
 //!         .map(|n| n.to_string())
 //!         .collect::<Vec<_>>().join(",");
