@@ -56,7 +56,7 @@ let mut tree = build_tree();
 let mut result = String::new();
 let mut result_index = vec![];
 let mut result_depth = vec![];
-for inode in tree.iter_depth_simple() {
+for inode in tree.iter_post_depth_simple() {
     result.push_str(&inode.to_uppercase());
     result.push(',');
     result_index.push(inode.index);
@@ -71,7 +71,7 @@ More complex iterator that gives access to the node's children:
 
 ```rust
 let mut tree = build_tree();
-for mut inode in tree.iter_depth_mut() {
+for mut inode in tree.iter_post_depth_mut() {
     // condition: any child j begins with 'c' and has all j's children k (if any) begin with 'c'
     let sub_is_c = inode.iter_children()
         .any(|j| {

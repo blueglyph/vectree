@@ -1,3 +1,7 @@
+# 0.4.1 (2026-02-03)
+
+- correction in README
+
 # 0.4.0 (2026-02-03)
 
 - rename post-order iterators (this obviously breaks back-compatibility)
