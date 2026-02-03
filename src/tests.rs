@@ -1,6 +1,5 @@
 // Copyright 2025 Redglyph
 //
-
 #![cfg(test)]
 
 use std::fmt::Display;
@@ -28,17 +27,6 @@ pub fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
     }
 }
 
-// fn node_to_string_index<T: Display>(tree: &VecTree<T>, index: usize) -> String {
-//     let mut result = format!("{index}:{}", tree.get(index));
-//     let children = tree.children(index);
-//     if !children.is_empty() {
-//         result.push_str("(");
-//         result.push_str(&children.iter().map(|&c| node_to_string_index(&tree, c)).collect::<Vec<_>>().join(","));
-//         result.push_str(")");
-//     }
-//     result
-// }
-
 pub fn tree_to_string_index<T: Display>(tree: &VecTree<T>) -> String {
     if let Some(id) = tree.root {
         node_to_string(tree, id, true)
@@ -47,6 +35,7 @@ pub fn tree_to_string_index<T: Display>(tree: &VecTree<T>) -> String {
     }
 }
 
+/// 0:root(1:a(4:a1, 5:a2), 2:b, 3:c(6:c1, 7:c2))
 fn build_tree() -> VecTree<String> {
     let mut tree = VecTree::new();
     let root = tree.add_root("root".to_string());
@@ -58,10 +47,20 @@ fn build_tree() -> VecTree<String> {
     tree
 }
 
+/// 0:root(1:a(4:a1, 5:a2(8:a21, 9:a22), 2:b, 3:c(6:c1(10:c11, 11:c12(12:c121)), 7:c2))
+fn build_bigger_tree() -> VecTree<String> {
+    let mut tree = build_tree();
+    tree.add_iter(Some(5), ["a21".to_string(), "a22".to_string()]);
+    tree.add_iter(Some(6), ["c11".to_string(), "c12".to_string()]);
+    tree.add(Some(11), "c121".to_string());
+    tree
+}
+
 // ---------------------------------------------------------------------------------------------
 // Tests
 
 mod general {
+    use crate::skip_last::SkipLastIterator;
     use super::*;
 
     #[test]
@@ -220,8 +219,6 @@ mod general {
                  ("a212",   &[]),           // 10
              ]),
         ];
-        // let tree = DATA.into_iter()
-        //     .map(|(root, children)| VecTree::from((root, children.into_iter().map(|(s, c)| (*s, c.into_iter().copied())))));
         let tree = DATA.into_iter()
             .map(|(root, children)| VecTree::from((root, children.to_vec())));
 
@@ -231,7 +228,7 @@ mod general {
 
     // cargo +nightly miri test --lib vectree::tests::general::iter_depth_children_simple -- --exact
     #[test]
-    fn iter_depth_simple() {
+    fn iter_depth_post_simple() {
         let tree = build_tree();
         let mut result = String::new();
         let mut result_index = vec![];
@@ -240,6 +237,7 @@ mod general {
         for inode in tree.iter_depth_simple() {
             result.push_str(&inode.to_uppercase());
             result.push(',');
+            // println!("- {}: {} [{}]", inode.depth, *inode, inode.index);
             result_index.push(inode.index);
             result_depth.push(inode.depth);
             result_num_children.push(inode.num_children());
@@ -248,6 +246,28 @@ mod general {
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
         assert_eq!(result_depth, [2, 2, 1, 1, 2, 2, 1, 0]);
         assert_eq!(result_num_children, [0, 0, 2, 0, 0, 0, 2, 3]);
+    }
+
+    #[test]
+    fn iter_depth_pre_simple() {
+        // 0:root(1:a(4:a1,5:a2(8:a21,9:a22),2:b,3:c(6:c1(10:c11,11:c12(12:c121)),7:c2))
+        let tree = build_bigger_tree();
+        let mut result = String::new();
+        let mut result_index = vec![];
+        let mut result_depth = vec![];
+        let mut result_num_children = vec![];
+        for inode in tree.iter_pre_depth_simple() {
+            result.push_str(&inode.to_uppercase());
+            result.push(',');
+            println!("- {}: {} [{}]", inode.depth, *inode, inode.index);
+            result_index.push(inode.index);
+            result_depth.push(inode.depth);
+            result_num_children.push(inode.num_children());
+        }
+        assert_eq!(result, "ROOT,A,A1,A2,A21,A22,B,C,C1,C11,C12,C121,C2,");
+        assert_eq!(result_index, [0, 1, 4, 5, 8, 9, 2, 3, 6, 10, 11, 12, 7]);
+        assert_eq!(result_depth, [0, 1, 2, 2, 3, 3, 1, 1, 2, 3, 3, 4, 2]);
+        assert_eq!(result_num_children, [3, 2, 0, 2, 0, 0, 0, 2, 2, 0, 1, 0, 0]);
     }
 
     #[test]
@@ -506,6 +526,48 @@ mod general {
         }
         let result = tree_to_string(&tree);
         assert_eq!(result, "ROOT(a(a1,a2),b,C(c1,c2))");
+    }
+
+    #[test]
+    fn iter_depth_pre_children_pre() {
+        let tree = build_bigger_tree();
+        let mut pre = String::new();
+        for node in tree.iter_pre_depth() {
+            pre.push_str(&node.to_string());
+            let children = node.iter_pre_depth_simple()
+                .skip(1)
+                .map(|n| n.to_string())
+                .collect::<Vec<_>>().join(",");
+            if !children.is_empty() {
+                pre.push_str(&format!("[{children}]"));
+            }
+            pre.push(',');
+        }
+        println!("pre:  {pre}");
+        assert_eq!(
+            pre,
+            "root[a,a1,a2,a21,a22,b,c,c1,c11,c12,c121,c2],a[a1,a2,a21,a22],a1,a2[a21,a22],a21,a22,b,c[c1,c11,c12,c121,c2],c1[c11,c12,c121],c11,c12[c121],c121,c2,");
+    }
+
+    #[test]
+    fn iter_depth_pre_children_post() {
+        let tree = build_bigger_tree();
+        let mut pre = String::new();
+        for node in tree.iter_pre_depth() {
+            pre.push_str(&node.to_string());
+            let children = node.iter_depth_simple()
+                .skip_last()
+                .map(|n| n.to_string())
+                .collect::<Vec<_>>().join(",");
+            if !children.is_empty() {
+                pre.push_str(&format!("[{children}]"));
+            }
+            pre.push(',');
+        }
+        println!("pre:  {pre}");
+        assert_eq!(
+            pre,
+            "root[a1,a21,a22,a2,a,b,c11,c121,c12,c1,c2,c],a[a1,a21,a22,a2],a1,a2[a21,a22],a21,a22,b,c[c11,c121,c12,c1,c2],c1[c11,c121,c12],c11,c12[c121],c121,c2,");
     }
 
     // cargo +nightly miri test --lib vectree::tests::general::iter_depth_mut_children_simple_miri -- --exact

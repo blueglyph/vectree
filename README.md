@@ -7,7 +7,7 @@
 
 A simple vector-based tree collection that provides flexible immutable and mutable iterators.
 
-The iterators are visiting the nodes in a post-order, depth-first search.
+The iterators are visiting the nodes in a pre- and post-order, depth-first search.
 
 ## Motivation
 

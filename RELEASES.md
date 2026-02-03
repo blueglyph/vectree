@@ -1,3 +1,17 @@
+# 0.3.0 (2026-02-03)
+
+- add `skip_last` iterator adapter, which can be useful when iterating over the children of an iterator node, since the last child item will be the current item (root of the subtree)
+- add pre-order depth-first iterators, including when iterating over node's children:
+  - `iter_pre_depth_simple`
+  - `iter_pre_depth_simple_at`
+  - `iter_pre_depth`
+  - `iter_pre_depth_at`
+  - `iter_pre_depth_simple_mut`
+  - `iter_pre_depth_simple_at_mut`
+  - `iter_pre_depth_mut`
+  - `iter_pre_depth_at_mut`
+- in this version, the post-order iterators have kept the same name as before, but they will be renamed as *_post_* in a future version.
+
 # 0.2.3 (2025-09-09)
 
 - add `children_mut` method to get a mutable reference to an item's children.
