@@ -1,3 +1,7 @@
+**IMPORTANT**: This repository has been rehosted elsewhere. Check on crates.io (link below) to see where the latest code is hosted.
+
+---
+
 [![crate](https://img.shields.io/crates/v/vectree.svg)](https://crates.io/crates/vectree)
 [![documentation](https://docs.rs/vectree/badge.svg)](https://docs.rs/vectree)
 [![license](https://img.shields.io/badge/License-MIT%202.0-blue.svg)](https://github.com/blueglyph/vectree/blob/master/LICENSE-MIT)
