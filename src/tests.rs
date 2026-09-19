@@ -249,6 +249,18 @@ mod general {
     }
 
     #[test]
+    fn iter_children() {
+        let tree = build_tree();
+        let mut result = String::new();
+        // 0:root(1:a(4:a1, 5:a2), 2:b, 3:c(6:c1, 7:c2))
+        for inode in tree.iter_children(3) {
+            result.push_str(&inode.to_uppercase());
+            result.push(',');
+        }
+        assert_eq!(result, "C1,C2,");
+    }
+
+    #[test]
     fn iter_depth_pre_simple() {
         // 0:root(1:a(4:a1,5:a2(8:a21,9:a22),2:b,3:c(6:c1(10:c11,11:c12(12:c121)),7:c2))
         let tree = build_bigger_tree();

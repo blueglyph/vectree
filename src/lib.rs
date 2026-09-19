@@ -591,6 +591,14 @@ impl<T: Clone> Clone for Node<T> {
     }
 }
 
+impl<T> Deref for Node<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.data.get().as_ref_unchecked() }
+    }
+}
+
 // This trait is used as a bound for both usize and &usize. It would be otherwise impossible
 // to implement From for iterators on both types (except by using Borrow, which produces
 // the same optimized code but is conceptually contradictory with what we do).
