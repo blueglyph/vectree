@@ -1,3 +1,8 @@
+# 0.4.2 (2026-09-19)
+
+- add Deref to Node
+- rehost on Codeberg
+
 # 0.4.1 (2026-02-03)
 
 - correction in README

@@ -8,9 +8,9 @@ authors = ["Redglyph"]
 categories = ["data-structures", "rust-patterns"]
 keywords = ["tree", "collection", "depth-first"]
 documentation = "https://docs.rs/vectree"
-homepage = "https://github.com/blueglyph/vectree"
+homepage = "https://codeberg.org/Redglyph/vectree.git"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/blueglyph/vectree"
+repository = "https://codeberg.org/Redglyph/vectree.git"
 readme = "README.md"
 
 [dependencies]
